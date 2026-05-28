@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SGMM - Igreja Betel</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    --primary: #7C3AED; --primary-dark: #6D28D9; --primary-light: #EDE9FE;
+    --success: #10B981; --danger: #EF4444; --warning: #F59E0B;
+    --gray-50: #F9FAFB; --gray-100: #F3F4F6; --gray-200: #E5E7EB;
+    --gray-400: #9CA3AF; --gray-500: #6B7280; --gray-600: #4B5563;
+    --gray-700: #374151; --gray-800: #1F2937; --dark: #1E1B4B;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--gray-50); color: var(--gray-800); }
+  button { cursor:pointer; font-family:inherit; }
+  input,select,textarea { font-family:inherit; }
+  a { text-decoration:none; color:inherit; }
+
+  /* Login */
+  #login-screen {
+    min-height:100vh; background:linear-gradient(135deg,#1E1B4B 0%,#4C1D95 50%,#7C3AED 100%);
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .login-card {
+    background:white; border-radius:20px; padding:40px 36px; width:100%; max-width:400px;
+    box-shadow:0 25px 60px rgba(0,0,0,.25);
+  }
+  .login-logo {
+    width:64px; height:64px; border-radius:16px;
+    background:linear-gradient(135deg,#7C3AED,#A78BFA);
+    display:flex; align-items:center; justify-content:center; font-size:30px; margin:0 auto 16px;
+  }
+  .login-card h1 { text-align:center; font-size:22px; color:var(--dark); margin-bottom:4px; }
+  .login-card p { text-align:center; color:var(--gray-500); font-size:14px; margin-bottom:28px; }
+  .field { margin-bottom:16px; }
+  .field label { display:block; font-size:13px; font-weight:600; color:var(--gray-700); margin-bottom:6px; }
+  .field input {
+    width:100%; padding:11px 14px; border-radius:10px;
+    border:1.5px solid var(--gray-200); font-size:14px; outline:none; transition:.2s;
+  }
+  .field input:focus { border-color:var(--primary); }
+  .btn-primary {
+    width:100%; padding:12px; background:linear-gradient(135deg,#7C3AED,#6D28D9);
+    color:white; border:none; border-radius:10px; font-size:15px; font-weight:600;
+  }
+  .hint { text-align:center; font-size:12px; color:var(--gray-400); margin-top:16px; }
+
+  /* App */
+  #app { display:none; height:100vh; overflow:hidden; }
+  .app-layout { display:flex; height:100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width:250px; background:#1E1B4B; color:white; display:flex; flex-direction:column;
+    height:100vh; flex-shrink:0;
+  }
+  .sidebar-logo {
+    padding:24px 20px; border-bottom:1px solid rgba(255,255,255,.1);
+    display:flex; align-items:center; gap:12px;
+  }
+  .sidebar-logo-icon {
+    width:40px; height:40px; border-radius:10px;
+    background:linear-gradient(135deg,#7C3AED,#A78BFA);
+    display:flex; align-items:center; justify-content:center; font-size:20px;
+  }
+  .sidebar-logo-text strong { font-size:15px; display:block; }
+  .sidebar-logo-text span { font-size:12px; color:#A5B4FC; }
+  .sidebar-user {
+    padding:14px 16px; border-bottom:1px solid rgba(255,255,255,.1);
+  }
+  .sidebar-user-inner {
+    background:rgba(255,255,255,.08); border-radius:10px; padding:10px 12px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .avatar {
+    width:34px; height:34px; border-radius:50%;
+    background:linear-gradient(135deg,#7C3AED,#EC4899);
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:700; color:white; flex-shrink:0;
+  }
+  .avatar.lg { width:52px; height:52px; font-size:20px; }
+  .sidebar-user-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sidebar-user-role { font-size:11px; color:#A5B4FC; }
+  nav { flex:1; padding:12px; overflow-y:auto; }
+  .nav-item {
+    display:flex; align-items:center; gap:10px; padding:10px 12px;
+    border-radius:8px; margin-bottom:2px; font-size:14px; cursor:pointer;
+    color:rgba(255,255,255,.65); transition:.15s; border:none; background:none; width:100%; text-align:left;
+  }
+  .nav-item:hover { background:rgba(255,255,255,.06); color:white; }
+  .nav-item.active { background:rgba(124,58,237,.5); color:white; font-weight:600; }
+  .nav-item .nav-icon { font-size:18px; }
+  .sidebar-footer { padding:12px 20px; border-top:1px solid rgba(255,255,255,.1); font-size:11px; color:rgba(255,255,255,.3); text-align:center; }
+
+  /* Main */
+  .main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  .topbar {
+    height:60px; background:white; border-bottom:1px solid var(--gray-200);
+    display:flex; align-items:center; justify-content:space-between; padding:0 20px; flex-shrink:0;
+  }
+  .topbar-title { font-size:16px; font-weight:600; color:var(--dark); }
+  .topbar-actions { display:flex; align-items:center; gap:8px; }
+  .content { flex:1; overflow-y:auto; padding:24px; }
+
+  /* Cards e componentes */
+  .page { animation: fadeIn .2s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+  .page-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; }
+  .page-title { font-size:22px; font-weight:700; color:var(--dark); }
+  .page-subtitle { font-size:14px; color:var(--gray-500); margin-top:3px; }
+  .card { background:white; border-radius:14px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .card + .card { margin-top:16px; }
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .grid-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:24px; }
+  .stat-card {
+    background:white; border-radius:14px; padding:18px 20px;
+    box-shadow:0 1px 3px rgba(0,0,0,.08); display:flex; align-items:center; gap:14px; cursor:pointer;
+    transition:.15s; border-left:4px solid;
+  }
+  .stat-card:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,.12); }
+  .stat-icon { width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; }
+  .stat-value { font-size:28px; font-weight:700; line-height:1; }
+  .stat-label { font-size:13px; color:var(--gray-500); margin-top:3px; }
+
+  /* Botões */
+  .btn { padding:9px 18px; border-radius:8px; font-size:14px; font-weight:600; border:none; cursor:pointer; font-family:inherit; transition:.15s; }
+  .btn-sm { padding:6px 12px; font-size:12px; border-radius:7px; }
+  .btn-primary-grad { background:linear-gradient(135deg,#7C3AED,#6D28D9); color:white; }
+  .btn-primary-grad:hover { opacity:.9; }
+  .btn-ghost-purple { background:var(--primary-light); color:var(--primary); }
+  .btn-ghost-red { background:#FEE2E2; color:var(--danger); }
+  .btn-ghost-green { background:#D1FAE5; color:#065F46; }
+  .btn-outline { background:white; border:1.5px solid var(--gray-200); color:var(--gray-700); }
+
+  /* Badge */
+  .badge { display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600; }
+
+  /* Tags de status */
+  .tag-purple { background:var(--primary-light); color:var(--primary); }
+  .tag-green { background:#D1FAE5; color:#065F46; }
+  .tag-red { background:#FEE2E2; color:#991B1B; }
+  .tag-yellow { background:#FEF3C7; color:#92400E; }
+  .tag-blue { background:#DBEAFE; color:#1D4ED8; }
+  .tag-gray { background:var(--gray-100); color:var(--gray-600); }
+
+  /* Escalas */
+  .schedule-item {
+    background:white; border-radius:14px; padding:18px 20px;
+    box-shadow:0 1px 3px rgba(0,0,0,.08); border-left:4px solid var(--primary); margin-bottom:12px;
+    display:flex; justify-content:space-between; align-items:flex-start; gap:12px;
+  }
+  .schedule-date-box {
+    background:var(--primary-light); border-radius:8px; padding:6px 10px;
+    text-align:center; min-width:46px;
+  }
+  .schedule-day { font-size:20px; font-weight:700; color:var(--primary); line-height:1; }
+  .schedule-month { font-size:10px; color:var(--primary); text-transform:uppercase; }
+  .assignments-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+
+  /* Kanban */
+  .kanban { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; align-items:start; }
+  .kanban-col { border-radius:14px; padding:14px; }
+  .kanban-col-header { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+  .kanban-dot { width:8px; height:8px; border-radius:50%; }
+  .kanban-col-title { font-weight:600; font-size:13px; }
+  .kanban-count { margin-left:auto; border-radius:20px; padding:1px 8px; font-size:12px; font-weight:600; }
+  .task-card {
+    background:white; border-radius:10px; padding:12px 14px; cursor:pointer;
+    box-shadow:0 1px 3px rgba(0,0,0,.07); margin-bottom:8px; border-top:3px solid;
+    transition:.15s;
+  }
+  .task-card:hover { box-shadow:0 4px 12px rgba(0,0,0,.12); }
+  .task-card-title { font-size:13px; font-weight:600; color:var(--gray-800); margin-bottom:8px; line-height:1.4; }
+  .task-card-footer { display:flex; justify-content:space-between; align-items:center; }
+
+  /* Mídia */
+  .media-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; }
+  .media-card { background:white; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.08); transition:.15s; }
+  .media-card:hover { box-shadow:0 4px 12px rgba(0,0,0,.12); }
+  .media-thumb { height:120px; background:var(--gray-100); display:flex; align-items:center; justify-content:center; font-size:36px; position:relative; }
+  .media-type-badge { position:absolute; top:6px; right:6px; color:white; font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; }
+  .media-info { padding:10px 12px; }
+  .media-name { font-size:12px; font-weight:600; color:var(--gray-800); margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .media-meta { font-size:11px; color:var(--gray-400); margin-bottom:8px; }
+
+  /* Usuários */
+  .user-card {
+    background:white; border-radius:12px; padding:16px 18px; box-shadow:0 1px 3px rgba(0,0,0,.08);
+    display:flex; align-items:center; gap:12px;
+  }
+  .user-name { font-size:14px; font-weight:600; color:var(--gray-800); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .user-email { font-size:12px; color:var(--gray-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  /* Modal */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.5);
+    display:flex; align-items:center; justify-content:center; z-index:200; padding:20px;
+  }
+  .modal {
+    background:white; border-radius:16px; padding:28px; width:100%; max-width:500px;
+    max-height:90vh; overflow-y:auto; animation:fadeIn .2s ease;
+  }
+  .modal h2 { font-size:18px; font-weight:700; color:var(--dark); margin-bottom:20px; }
+  .form-field { margin-bottom:14px; }
+  .form-field label { display:block; font-size:12px; font-weight:600; color:var(--gray-700); margin-bottom:5px; }
+  .form-field input, .form-field select, .form-field textarea {
+    width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--gray-200); font-size:14px; outline:none;
+  }
+  .form-field input:focus, .form-field select:focus { border-color:var(--primary); }
+  .form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .modal-footer { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+
+  /* Drawer */
+  .drawer-overlay { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200; }
+  .drawer {
+    position:absolute; right:0; top:0; bottom:0; width:100%; max-width:420px;
+    background:white; padding:24px; overflow-y:auto; box-shadow:-4px 0 20px rgba(0,0,0,.15);
+    animation:slideIn .2s ease;
+  }
+  @keyframes slideIn { from{transform:translateX(30px);opacity:0} to{transform:none;opacity:1} }
+
+  /* Toast */
+  .toast {
+    position:fixed; bottom:24px; right:24px; background:#1F2937; color:white;
+    padding:12px 20px; border-radius:10px; font-size:14px; z-index:999;
+    animation:fadeIn .2s ease; display:flex; align-items:center; gap:8px;
+    box-shadow:0 8px 24px rgba(0,0,0,.2);
+  }
+
+  /* Notif */
+  .notif-dot {
+    position:absolute; top:2px; right:2px; background:var(--danger); color:white;
+    border-radius:50%; width:16px; height:16px; font-size:10px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .notif-panel {
+    position:absolute; right:0; top:100%; margin-top:4px; width:310px;
+    background:white; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,.15);
+    border:1px solid var(--gray-200); z-index:100; animation:fadeIn .15s ease;
+  }
+  .notif-item { padding:10px 16px; border-bottom:1px solid var(--gray-100); display:flex; gap:10px; font-size:13px; }
+  .notif-item.unread { background:#F5F3FF; }
+
+  /* Month nav */
+  .month-nav {
+    display:flex; align-items:center; gap:12px; background:white; padding:10px 16px;
+    border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.08); margin-bottom:20px; width:fit-content;
+  }
+  .month-nav button { background:none; border:none; font-size:18px; cursor:pointer; color:var(--gray-700); }
+  .month-nav span { font-weight:600; min-width:150px; text-align:center; font-size:15px; }
+
+  /* Confirm buttons */
+  .confirm-row { display:flex; gap:8px; margin-top:12px; }
+
+  /* Role section header */
+  .role-header { font-size:12px; font-weight:700; color:var(--gray-500); text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px; }
+  .role-section { margin-bottom:24px; }
+  .users-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:12px; }
+
+  /* Upload zone */
+  .upload-zone {
+    border:2px dashed var(--gray-300); border-radius:12px; padding:32px 20px;
+    text-align:center; cursor:pointer; background:var(--gray-50); transition:.2s; margin-bottom:16px;
+  }
+  .upload-zone:hover { border-color:var(--primary); background:var(--primary-light); }
+
+  /* Progress */
+  .progress-bar { height:6px; background:var(--gray-200); border-radius:3px; overflow:hidden; }
+  .progress-fill { height:100%; background:var(--primary); border-radius:3px; transition:.3s; }
+
+  /* Dashboard welcome */
+  .welcome-bar { margin-bottom:24px; }
+  .welcome-name { font-size:24px; font-weight:700; color:var(--dark); }
+  .welcome-date { font-size:14px; color:var(--gray-500); margin-top:3px; }
+
+  /* Responsive */
+  @media(max-width:900px) { .kanban { grid-template-columns:repeat(2,1fr); } }
+  @media(max-width:600px) { .kanban { grid-template-columns:1fr; } .grid-2{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">🎬</div>
+    <h1>Ministério de Mídias</h1>
+    <p>Igreja Betel</p>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="login-email" value="lider@igrejabetel.com" placeholder="seu@email.com">
+    </div>
+    <div class="field">
+      <label>Senha</label>
+      <input type="password" id="login-password" value="password" placeholder="••••••••">
+    </div>
+    <button class="btn-primary" onclick="doLogin()" style="width:100%;padding:12px;border-radius:10px;font-size:15px;font-weight:600;border:none;margin-top:4px;">Entrar</button>
+    <p class="hint">Usuários de demonstração abaixo ↓</p>
+    <div style="margin-top:10px;background:#F9FAFB;border-radius:10px;padding:12px;font-size:12px;color:#6B7280;">
+      <strong style="color:#374151;display:block;margin-bottom:6px;">Logins para testar:</strong>
+      <div onclick="setLogin('lider@igrejabetel.com','password')" style="cursor:pointer;padding:4px 0;border-bottom:1px solid #E5E7EB;">🎬 <b>lider@igrejabetel.com</b> / password — <span style="color:#7C3AED">Admin</span></div>
+      <div onclick="setLogin('pastor@igrejabetel.com','password')" style="cursor:pointer;padding:4px 0;border-bottom:1px solid #E5E7EB;">⛪ <b>pastor@igrejabetel.com</b> / password — <span style="color:#2563EB">Pastoral</span></div>
+      <div onclick="setLogin('secretaria@igrejabetel.com','password')" style="cursor:pointer;padding:4px 0;border-bottom:1px solid #E5E7EB;">📋 <b>secretaria@igrejabetel.com</b> / password — <span style="color:#0891B2">Secretaria</span></div>
+      <div onclick="setLogin('joao@igrejabetel.com','password')" style="cursor:pointer;padding:4px 0;">📸 <b>joao@igrejabetel.com</b> / password — <span style="color:#059669">Voluntário</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">🎬</div>
+        <div class="sidebar-logo-text">
+          <strong>Ministério</strong>
+          <span>de Mídias</span>
+        </div>
+      </div>
+      <div class="sidebar-user">
+        <div class="sidebar-user-inner">
+          <div class="avatar" id="sidebar-avatar"></div>
+          <div>
+            <div class="sidebar-user-name" id="sidebar-name"></div>
+            <div class="sidebar-user-role" id="sidebar-role"></div>
+          </div>
+        </div>
+      </div>
+      <nav id="nav"></nav>
+      <div class="sidebar-footer">SGMM v1.0 · Igreja Betel</div>
+    </aside>
+    <div class="main">
+      <div class="topbar">
+        <span class="topbar-title" id="topbar-title">Dashboard</span>
+        <div class="topbar-actions">
+          <div style="position:relative">
+            <button onclick="toggleNotif()" style="background:none;border:none;font-size:20px;padding:6px 8px;border-radius:8px;color:#374151;position:relative;">
+              🔔
+              <span class="notif-dot" id="notif-count" style="display:none">3</span>
+            </button>
+            <div class="notif-panel" id="notif-panel" style="display:none"></div>
+          </div>
+          <div style="position:relative">
+            <div class="avatar" id="topbar-avatar" onclick="toggleUserMenu()" style="cursor:pointer"></div>
+            <div id="user-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:4px;width:160px;background:white;border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.12);border:1px solid #E5E7EB;z-index:100;">
+              <button onclick="navigate('perfil');toggleUserMenu()" style="width:100%;padding:10px 16px;background:none;border:none;text-align:left;font-size:14px;cursor:pointer;color:#374151;border-radius:10px 10px 0 0;">👤 Meu Perfil</button>
+              <hr style="margin:0;border-color:#E5E7EB">
+              <button onclick="doLogout()" style="width:100%;padding:10px 16px;background:none;border:none;text-align:left;font-size:14px;cursor:pointer;color:#EF4444;border-radius:0 0 10px 10px;">🚪 Sair</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="content" id="content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script>
+// =================== DADOS DEMO ===================
+const USERS = [
+  { id:'1', name:'Caio Correa', email:'lider@igrejabetel.com', password:'password', role:'admin', phone:'(11)99999-0001' },
+  { id:'2', name:'Pr. Ricardo Silva', email:'pastor@igrejabetel.com', password:'password', role:'pastoral', phone:'(11)99999-0002' },
+  { id:'3', name:'Ana Oliveira', email:'secretaria@igrejabetel.com', password:'password', role:'secretaria', phone:'(11)99999-0003' },
+  { id:'4', name:'João Fotógrafo', email:'joao@igrejabetel.com', password:'password', role:'voluntario', phone:'(11)99999-0004' },
+  { id:'5', name:'Maria Editora', email:'maria@igrejabetel.com', password:'password', role:'voluntario', phone:'(11)99999-0005' },
+];
+
+const today = new Date();
+const fmt = (d) => d.toISOString().slice(0,10);
+const d = (offset) => fmt(new Date(today.getFullYear(), today.getMonth(), today.getDate()+offset));
+
+let DB = {
+  schedules: [
+    { id:'s1', title:'Culto Domingo Manhã', date:d(5), time:'09:00', type:'culto', notes:'Tema: Fé e Perseverança',
+      assignments:[{userId:'4',function:'Fotógrafo',status:'confirmed'},{userId:'5',function:'Editora',status:'pending'}], createdBy:'1' },
+    { id:'s2', title:'Culto Domingo Noite', date:d(5), time:'19:00', type:'culto', notes:'',
+      assignments:[{userId:'4',function:'Videógrafo',status:'pending'}], createdBy:'1' },
+    { id:'s3', title:'Reunião de Jovens', date:d(12), time:'19:30', type:'reunião', notes:'',
+      assignments:[{userId:'5',function:'Projeção',status:'confirmed'}], createdBy:'1' },
+    { id:'s4', title:'Culto de Quinta', date:d(-3), time:'19:30', type:'culto', notes:'',
+      assignments:[{userId:'4',function:'Fotógrafo',status:'confirmed'},{userId:'5',function:'Editor',status:'confirmed'}], createdBy:'1' },
+  ],
+  tasks: [
+    { id:'t1', title:'Editar Reels do Culto de Domingo', description:'Fazer 3 reels de 30s para o Instagram a partir do material bruto', assignedTo:'5', assigneeName:'Maria Editora', createdBy:'1', status:'em_andamento', priority:'alta', dueDate:d(3), comments:[{id:'c1',userId:'1',userName:'Caio',text:'Priorizar o momento de oração.',createdAt:new Date().toISOString()}] },
+    { id:'t2', title:'Selecionar Fotos para o Story', description:'Escolher as 5 melhores fotos do culto', assignedTo:'4', assigneeName:'João Fotógrafo', createdBy:'1', status:'pendente', priority:'media', dueDate:d(1), comments:[] },
+    { id:'t3', title:'Atualizar capa do Facebook', description:'Trocar a capa com a arte do mês', assignedTo:'5', assigneeName:'Maria Editora', createdBy:'1', status:'aguardando_revisao', priority:'baixa', dueDate:d(7), comments:[] },
+    { id:'t4', title:'Gravar vídeo institucional', description:'Roteiro já aprovado pela pastoral', assignedTo:'4', assigneeName:'João Fotógrafo', createdBy:'1', status:'pendente', priority:'urgente', dueDate:d(10), comments:[] },
+    { id:'t5', title:'Post semana de oração', description:'Criar artes para os 7 dias', assignedTo:'5', assigneeName:'Maria Editora', createdBy:'2', status:'concluido', priority:'alta', dueDate:d(-5), comments:[] },
+  ],
+  media: [
+    { id:'m1', name:'DSC_0421.jpg', type:'foto', size:4200000, folderName:`${d(-7)} - Culto Domingo Manhã`, uploaderName:'João Fotógrafo', driveUrl:'#', thumbnailUrl:'' },
+    { id:'m2', name:'DSC_0445.jpg', type:'foto', size:3800000, folderName:`${d(-7)} - Culto Domingo Manhã`, uploaderName:'João Fotógrafo', driveUrl:'#', thumbnailUrl:'' },
+    { id:'m3', name:'Culto_19h_raw.mp4', type:'video', size:980000000, folderName:`${d(-7)} - Culto Domingo Manhã`, uploaderName:'Maria Editora', driveUrl:'#', thumbnailUrl:'' },
+    { id:'m4', name:'DSC_0512.jpg', type:'foto', size:5100000, folderName:`${d(-14)} - Reunião de Jovens`, uploaderName:'João Fotógrafo', driveUrl:'#', thumbnailUrl:'' },
+  ],
+  notifications: [
+    { id:'n1', userId:'1', type:'confirmation', title:'Confirmação de escala', message:'João Fotógrafo confirmou presença no Culto Domingo Manhã', read:false, createdAt:new Date().toISOString() },
+    { id:'n2', userId:'1', type:'task_review', title:'Tarefa aguardando revisão', message:'"Atualizar capa do Facebook" foi enviada para revisão por Maria Editora', read:false, createdAt:new Date().toISOString() },
+    { id:'n3', userId:'1', type:'media_upload', title:'Novo material enviado', message:'João Fotógrafo enviou "DSC_0512.jpg" para Reunião de Jovens', read:true, createdAt:new Date().toISOString() },
+  ]
+};
+
+// =================== APP STATE ===================
+let currentUser = null;
+let currentPage = 'dashboard';
+let showNotif = false;
+let showUserMenu = false;
+
+const ROLE_LABELS = { admin:'Líder de Mídias', pastoral:'Pastoral', secretaria:'Secretaria', voluntario:'Voluntário' };
+const ROLE_COLORS = { admin:'#7C3AED', pastoral:'#2563EB', secretaria:'#0891B2', voluntario:'#059669' };
+
+function setLogin(email, pass) {
+  document.getElementById('login-email').value = email;
+  document.getElementById('login-password').value = pass;
+}
+
+function doLogin() {
+  const email = document.getElementById('login-email').value;
+  const pass = document.getElementById('login-password').value;
+  const user = USERS.find(u => u.email === email && u.password === pass);
+  if (!user) { toast('Email ou senha incorretos', '❌'); return; }
+  currentUser = user;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  setupApp();
+  navigate('dashboard');
+}
+
+function doLogout() {
+  currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('user-menu').style.display = 'none';
+}
+
+function setupApp() {
+  // Avatar
+  const initial = currentUser.name.charAt(0).toUpperCase();
+  document.getElementById('sidebar-avatar').textContent = initial;
+  document.getElementById('topbar-avatar').textContent = initial;
+  document.getElementById('sidebar-name').textContent = currentUser.name;
+  document.getElementById('sidebar-role').textContent = ROLE_LABELS[currentUser.role];
+
+  // Notificações
+  const unread = DB.notifications.filter(n => n.userId === currentUser.id && !n.read).length;
+  const notifCount = document.getElementById('notif-count');
+  notifCount.textContent = unread;
+  notifCount.style.display = unread > 0 ? 'flex' : 'none';
+
+  // Nav
+  buildNav();
+}
+
+function buildNav() {
+  const r = currentUser.role;
+  const items = [
+    { page:'dashboard', icon:'🏠', label:'Dashboard' },
+    { page:'escalas', icon:'📅', label:'Escalas' },
+    { page:'tarefas', icon:'✅', label:'Tarefas' },
+    ...(r !== 'secretaria' ? [{ page:'midias', icon:'📁', label:'Repositório' }] : []),
+    ...(r === 'admin' ? [{ page:'usuarios', icon:'👥', label:'Usuários' }] : []),
+    { page:'perfil', icon:'👤', label:'Meu Perfil' },
+  ];
+  document.getElementById('nav').innerHTML = items.map(i =>
+    `<button class="nav-item${currentPage===i.page?' active':''}" onclick="navigate('${i.page}')">
+      <span class="nav-icon">${i.icon}</span>${i.label}
+    </button>`
+  ).join('');
+}
+
+function navigate(page) {
+  currentPage = page;
+  buildNav();
+  const titles = { dashboard:'Dashboard', escalas:'Escalas', tarefas:'Tarefas', midias:'Repositório de Mídia', usuarios:'Usuários', perfil:'Meu Perfil' };
+  document.getElementById('topbar-title').textContent = titles[page] || page;
+  const pages = { dashboard: renderDashboard, escalas: renderEscalas, tarefas: renderTarefas, midias: renderMidias, usuarios: renderUsuarios, perfil: renderPerfil };
+  if (pages[page]) document.getElementById('content').innerHTML = `<div class="page">${pages[page]()}</div>`;
+}
+
+function toggleNotif() {
+  showNotif = !showNotif;
+  showUserMenu = false;
+  document.getElementById('user-menu').style.display = 'none';
+  const panel = document.getElementById('notif-panel');
+  if (showNotif) {
+    const myNotifs = DB.notifications.filter(n => n.userId === currentUser.id).slice(0,10);
+    const icons = { schedule:'📅', task:'✅', task_review:'👁', confirmation:'✅', media_upload:'📁' };
+    panel.innerHTML = `
+      <div style="padding:12px 16px;border-bottom:1px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:600;font-size:14px">Notificações</span>
+        <button onclick="markAllRead()" style="background:none;border:none;font-size:12px;color:#7C3AED;cursor:pointer">Marcar tudo lido</button>
+      </div>
+      ${myNotifs.length === 0 ? '<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:14px">Nenhuma notificação</div>'
+        : myNotifs.map(n => `<div class="notif-item${n.read?'':' unread'}">
+          <span style="font-size:18px;flex-shrink:0">${icons[n.type]||'🔔'}</span>
+          <div><div style="font-weight:${n.read?400:600};color:#1F2937">${n.title}</div><div style="font-size:12px;color:#6B7280;margin-top:2px">${n.message}</div></div>
+        </div>`).join('')}
+    `;
+    panel.style.display = 'block';
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
+function markAllRead() {
+  DB.notifications.filter(n => n.userId === currentUser.id).forEach(n => n.read = true);
+  document.getElementById('notif-count').style.display = 'none';
+  toggleNotif(); toggleNotif();
+}
+
+function toggleUserMenu() {
+  showUserMenu = !showUserMenu;
+  showNotif = false;
+  document.getElementById('notif-panel').style.display = 'none';
+  document.getElementById('user-menu').style.display = showUserMenu ? 'block' : 'none';
+}
+
+// =================== DASHBOARD ===================
+function renderDashboard() {
+  const upcoming = DB.schedules.filter(s => s.date >= fmt(today)).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,4);
+  const pending = DB.tasks.filter(t => t.status !== 'concluido').sort((a,b) => {
+    const o = {urgente:0,alta:1,media:2,baixa:3};
+    return o[a.priority]-o[b.priority];
+  }).slice(0,5);
+  const prioColor = {urgente:'#EF4444',alta:'#F59E0B',media:'#3B82F6',baixa:'#10B981'};
+  const statusLbl = {pendente:'Pendente',em_andamento:'Em andamento',aguardando_revisao:'Revisão',concluido:'Concluído'};
+  const days = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+  const months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  const now = new Date();
+  const dayStr = days[now.getDay()].charAt(0).toUpperCase()+days[now.getDay()].slice(1);
+  const dateStr = `${now.getDate()} de ${months[now.getMonth()]} de ${now.getFullYear()}`;
+
+  return `
+  <div class="welcome-bar">
+    <div class="welcome-name">Olá, ${currentUser.name.split(' ')[0]}! 👋</div>
+    <div class="welcome-date">${dayStr}, ${dateStr}</div>
+  </div>
+  <div class="grid-stats">
+    <div class="stat-card" style="border-color:#7C3AED" onclick="navigate('escalas')">
+      <div class="stat-icon" style="background:#EDE9FE">📅</div>
+      <div><div class="stat-value">${DB.schedules.length}</div><div class="stat-label">Escalas cadastradas</div></div>
+    </div>
+    <div class="stat-card" style="border-color:#F59E0B" onclick="navigate('tarefas')">
+      <div class="stat-icon" style="background:#FEF3C7">✅</div>
+      <div><div class="stat-value">${DB.tasks.filter(t=>t.status!=='concluido').length}</div><div class="stat-label">Tarefas em aberto</div></div>
+    </div>
+    <div class="stat-card" style="border-color:#10B981" onclick="navigate('midias')">
+      <div class="stat-icon" style="background:#D1FAE5">📁</div>
+      <div><div class="stat-value">${DB.media.length}</div><div class="stat-label">Arquivos no Drive</div></div>
+    </div>
+    <div class="stat-card" style="border-color:#3B82F6" onclick="navigate('usuarios')">
+      <div class="stat-icon" style="background:#DBEAFE">👥</div>
+      <div><div class="stat-value">${USERS.length}</div><div class="stat-label">Membros da equipe</div></div>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <strong style="font-size:15px">Próximos cultos</strong>
+        <button class="btn btn-sm" onclick="navigate('escalas')" style="color:#7C3AED;background:none;border:none;font-weight:600;font-size:13px">Ver todos</button>
+      </div>
+      ${upcoming.length === 0 ? '<p style="color:#9CA3AF;font-size:14px">Nenhum culto agendado</p>' :
+        upcoming.map(s => {
+          const dt = new Date(s.date+'T12:00:00');
+          const mine = s.assignments.find(a => a.userId === currentUser.id);
+          return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #F3F4F6">
+            <div class="schedule-date-box">
+              <div class="schedule-day">${dt.getDate()}</div>
+              <div class="schedule-month">${dt.toLocaleDateString('pt-BR',{month:'short'})}</div>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:600">${s.title}</div>
+              <div style="font-size:12px;color:#6B7280">${s.time?s.time+' · ':''} ${s.assignments.length} escalados
+                ${mine?`<span class="badge tag-purple" style="margin-left:6px">${mine.function}</span>`:''}
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <strong style="font-size:15px">Tarefas pendentes</strong>
+        <button class="btn btn-sm" onclick="navigate('tarefas')" style="color:#7C3AED;background:none;border:none;font-weight:600;font-size:13px">Ver todas</button>
+      </div>
+      ${pending.length === 0 ? '<p style="color:#9CA3AF;font-size:14px">Nenhuma tarefa pendente</p>' :
+        pending.map(t => `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F3F4F6">
+          <div style="width:8px;height:8px;border-radius:50%;background:${prioColor[t.priority]};flex-shrink:0"></div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:500">${t.title}</div>
+            <div style="font-size:12px;color:#6B7280">${t.assigneeName} · ${statusLbl[t.status]}</div>
+          </div>
+          ${t.dueDate?`<div style="font-size:11px;color:#9CA3AF;white-space:nowrap">${new Date(t.dueDate+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</div>`:''}
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// =================== ESCALAS ===================
+let currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+function renderEscalas() {
+  const monthStr = currentMonth.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  const canManage = ['admin','secretaria'].includes(currentUser.role);
+  const monthNum = currentMonth.getMonth();
+  const yearNum = currentMonth.getFullYear();
+
+  let schedules = DB.schedules.filter(s => {
+    const d = new Date(s.date+'T12:00:00');
+    return d.getMonth() === monthNum && d.getFullYear() === yearNum;
+  });
+  if (currentUser.role === 'voluntario') {
+    schedules = schedules.filter(s => s.assignments.some(a => a.userId === currentUser.id));
+  }
+  schedules.sort((a,b) => a.date.localeCompare(b.date));
+
+  const statusColors = { pending:'#F59E0B', confirmed:'#10B981', declined:'#EF4444' };
+  const statusLabels = { pending:'Pendente', confirmed:'Confirmado', declined:'Recusado' };
+
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Escalas</div><div class="page-subtitle">Gerencie as escalas dos cultos</div></div>
+    ${canManage ? `<button class="btn btn-primary-grad" onclick="openNewSchedule()">+ Nova escala</button>` : ''}
+  </div>
+  <div class="month-nav">
+    <button onclick="changeMonth(-1)">‹</button>
+    <span>${monthStr.charAt(0).toUpperCase()+monthStr.slice(1)}</span>
+    <button onclick="changeMonth(1)">›</button>
+  </div>
+  <div id="schedules-list">
+  ${schedules.length === 0 ? `<div style="text-align:center;padding:60px;color:#9CA3AF"><div style="font-size:40px;margin-bottom:12px">📅</div><p style="font-size:16px">Nenhuma escala neste mês</p></div>` :
+    schedules.map(s => {
+      const dt = new Date(s.date+'T12:00:00');
+      const mine = s.assignments.find(a => a.userId === currentUser.id);
+      return `
+      <div class="schedule-item">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+            <div class="schedule-date-box">
+              <div class="schedule-day">${dt.getDate()}</div>
+              <div class="schedule-month">${dt.toLocaleDateString('pt-BR',{month:'short'})}</div>
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+                <strong style="font-size:15px">${s.title}</strong>
+                <span class="badge tag-purple">${s.type}</span>
+              </div>
+              <div style="font-size:13px;color:#6B7280">
+                ${s.time ? `🕐 ${s.time} · ` : ''}${s.assignments.length} escalado(s)
+              </div>
+            </div>
+          </div>
+          <div class="assignments-row">
+            ${s.assignments.map(a => {
+              const u = USERS.find(u => u.id === a.userId);
+              return `<span class="badge" style="background:${statusColors[a.status]}20;color:${statusColors[a.status]};border:1px solid ${statusColors[a.status]}40">
+                ${u?u.name:'?'} · ${a.function} · ${statusLabels[a.status]}
+              </span>`;
+            }).join('')}
+          </div>
+          ${mine && mine.status === 'pending' ? `
+          <div class="confirm-row">
+            <button class="btn btn-sm btn-ghost-green" onclick="confirmPresence('${s.id}','confirmed')">✓ Confirmar presença</button>
+            <button class="btn btn-sm btn-ghost-red" onclick="confirmPresence('${s.id}','declined')">✕ Não consigo ir</button>
+          </div>` : ''}
+          ${mine && mine.status === 'confirmed' ? `<div style="margin-top:10px"><span class="badge tag-green">Você confirmou presença</span></div>` : ''}
+          ${mine && mine.status === 'declined' ? `<div style="margin-top:10px"><span class="badge tag-red">Você recusou esta escala</span></div>` : ''}
+        </div>
+        ${canManage ? `
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-sm btn-ghost-purple" onclick="openEditSchedule('${s.id}')">Editar</button>
+          <button class="btn btn-sm btn-ghost-red" onclick="deleteSchedule('${s.id}')">Remover</button>
+        </div>` : ''}
+      </div>`;
+    }).join('')}
+  </div>
+  `;
+}
+
+function changeMonth(dir) {
+  currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth()+dir, 1);
+  document.getElementById('content').innerHTML = `<div class="page">${renderEscalas()}</div>`;
+}
+
+function confirmPresence(scheduleId, status) {
+  const s = DB.schedules.find(s => s.id === scheduleId);
+  const a = s.assignments.find(a => a.userId === currentUser.id);
+  a.status = status;
+  DB.notifications.push({
+    id:'n'+Date.now(), userId:s.createdBy, type:'confirmation',
+    title:'Confirmação de escala',
+    message:`${currentUser.name} ${status==='confirmed'?'confirmou':'recusou'} presença em "${s.title}"`,
+    read:false, createdAt:new Date().toISOString()
+  });
+  toast(status==='confirmed'?'Presença confirmada!':'Presença recusada', status==='confirmed'?'✅':'❌');
+  navigate('escalas');
+}
+
+function openNewSchedule() { openScheduleModal(null); }
+function openEditSchedule(id) { openScheduleModal(DB.schedules.find(s=>s.id===id)); }
+
+function openScheduleModal(schedule) {
+  const vols = USERS.filter(u => u.role === 'voluntario');
+  const funcs = ['Fotógrafo','Videógrafo','Editor','Operador de Som','Projeção','Transmissão','Designer'];
+  const s = schedule || { title:'', date:'', time:'', type:'culto', notes:'', assignments:[] };
+  let assignments = [...s.assignments.map(a=>({...a}))];
+
+  function renderAssignments() {
+    return assignments.map((a,i) => `
+      <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+        <select onchange="window._assignUpdate(${i},'userId',this.value)" style="flex:1;padding:8px 10px;border-radius:8px;border:1.5px solid #E5E7EB;font-size:13px;background:white">
+          <option value="">Selecionar</option>
+          ${vols.map(u=>`<option value="${u.id}"${a.userId===u.id?' selected':''}>${u.name}</option>`).join('')}
+        </select>
+        <select onchange="window._assignUpdate(${i},'function',this.value)" style="flex:1;padding:8px 10px;border-radius:8px;border:1.5px solid #E5E7EB;font-size:13px;background:white">
+          ${funcs.map(f=>`<option${a.function===f?' selected':''}>${f}</option>`).join('')}
+        </select>
+        <button type="button" onclick="window._assignRemove(${i})" style="background:#FEE2E2;color:#EF4444;border:none;border-radius:6px;padding:6px 10px;cursor:pointer">✕</button>
+      </div>`).join('');
+  }
+
+  window._assignUpdate = (i,field,val) => { assignments[i][field]=val; };
+  window._assignRemove = (i) => { assignments.splice(i,1); document.getElementById('assign-list').innerHTML=renderAssignments(); };
+  window._assignAdd = () => { assignments.push({userId:'',function:'Fotógrafo',status:'pending'}); document.getElementById('assign-list').innerHTML=renderAssignments(); };
+
+  const html = `
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h2>${schedule?'Editar escala':'Nova escala'}</h2>
+      <form onsubmit="saveSchedule(event,'${schedule?schedule.id:''}')">
+        <div class="form-field"><label>Título</label><input id="f-title" required value="${s.title}" placeholder="Ex: Culto Domingo Manhã"></div>
+        <div class="form-grid-2">
+          <div class="form-field"><label>Data</label><input id="f-date" type="date" required value="${s.date}"></div>
+          <div class="form-field"><label>Horário</label><input id="f-time" type="time" value="${s.time}"></div>
+          <div class="form-field"><label>Tipo</label>
+            <select id="f-type">
+              <option${s.type==='culto'?' selected':''}>culto</option>
+              <option${s.type==='reunião'?' selected':''}>reunião</option>
+              <option${s.type==='evento'?' selected':''}>evento</option>
+            </select>
+          </div>
+          <div class="form-field"><label>Observações</label><input id="f-notes" value="${s.notes}" placeholder="Opcional"></div>
+        </div>
+        <div class="form-field" style="margin-top:4px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <label style="margin:0">Equipe escalada</label>
+            <button type="button" onclick="window._assignAdd()" style="background:none;border:1.5px dashed #7C3AED;color:#7C3AED;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:inherit">+ Adicionar</button>
+          </div>
+          <div id="assign-list">${renderAssignments()}</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary-grad">${schedule?'Salvar':'Criar escala'}</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+  showModal(html);
+  window._getAssignments = () => assignments;
+}
+
+function saveSchedule(e, id) {
+  e.preventDefault();
+  const data = {
+    id: id || 's'+Date.now(),
+    title: document.getElementById('f-title').value,
+    date: document.getElementById('f-date').value,
+    time: document.getElementById('f-time').value,
+    type: document.getElementById('f-type').value,
+    notes: document.getElementById('f-notes').value,
+    assignments: window._getAssignments().map(a=>({...a,status:a.status||'pending'})),
+    createdBy: currentUser.id
+  };
+  if (id) {
+    const idx = DB.schedules.findIndex(s=>s.id===id);
+    DB.schedules[idx] = data;
+    toast('Escala atualizada!','✅');
+  } else {
+    DB.schedules.push(data);
+    data.assignments.forEach(a => {
+      if(a.userId) DB.notifications.push({id:'n'+Date.now(),userId:a.userId,type:'schedule',title:'Nova Escala',message:`Você foi escalado para "${data.title}"`,read:false,createdAt:new Date().toISOString()});
+    });
+    toast('Escala criada!','✅');
+  }
+  closeModal();
+  navigate('escalas');
+}
+
+function deleteSchedule(id) {
+  if (!confirm('Remover esta escala?')) return;
+  DB.schedules = DB.schedules.filter(s=>s.id!==id);
+  toast('Escala removida','🗑');
+  navigate('escalas');
+}
+
+// =================== TAREFAS ===================
+const STATUS_COLS = [
+  {key:'pendente',label:'Pendente',color:'#6B7280',bg:'#F9FAFB'},
+  {key:'em_andamento',label:'Em andamento',color:'#3B82F6',bg:'#EFF6FF'},
+  {key:'aguardando_revisao',label:'Aguardando revisão',color:'#F59E0B',bg:'#FFFBEB'},
+  {key:'concluido',label:'Concluído',color:'#10B981',bg:'#F0FDF4'},
+];
+const PRIO = {urgente:{label:'Urgente',color:'#EF4444'},alta:{label:'Alta',color:'#F59E0B'},media:{label:'Média',color:'#3B82F6'},baixa:{label:'Baixa',color:'#10B981'}};
+
+function renderTarefas() {
+  const canManage = ['admin','pastoral'].includes(currentUser.role);
+  let tasks = currentUser.role === 'voluntario'
+    ? DB.tasks.filter(t => t.assignedTo===currentUser.id || t.createdBy===currentUser.id)
+    : DB.tasks;
+
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Tarefas</div><div class="page-subtitle">Acompanhe o workflow de produções</div></div>
+    ${canManage ? `<button class="btn btn-primary-grad" onclick="openNewTask()">+ Nova tarefa</button>` : ''}
+  </div>
+  <div class="kanban">
+    ${STATUS_COLS.map(col => {
+      const colTasks = tasks.filter(t => t.status === col.key);
+      return `
+      <div class="kanban-col" style="background:${col.bg}">
+        <div class="kanban-col-header">
+          <div class="kanban-dot" style="background:${col.color}"></div>
+          <span class="kanban-col-title" style="color:${col.color}">${col.label}</span>
+          <span class="kanban-count" style="background:${col.color}20;color:${col.color}">${colTasks.length}</span>
+        </div>
+        ${colTasks.map(t => `
+          <div class="task-card" style="border-top-color:${PRIO[t.priority]?.color||'#E5E7EB'}" onclick="openTaskDetail('${t.id}')">
+            <div class="task-card-title">${t.title}</div>
+            <div class="task-card-footer">
+              <span class="badge" style="background:${PRIO[t.priority]?.color||'#999'}15;color:${PRIO[t.priority]?.color||'#999'}">${PRIO[t.priority]?.label||''}</span>
+              ${t.dueDate?`<span style="font-size:11px;color:#9CA3AF">${new Date(t.dueDate+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>`:''}
+            </div>
+            ${t.assigneeName?`<p style="font-size:11px;color:#9CA3AF;margin-top:6px">👤 ${t.assigneeName}</p>`:''}
+          </div>`).join('')}
+        ${colTasks.length===0?`<div style="text-align:center;padding:20px 10px;color:#D1D5DB;font-size:13px">Nenhuma tarefa</div>`:''}
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function openNewTask() { openTaskModal(null); }
+function openEditTask(id) { openTaskModal(DB.tasks.find(t=>t.id===id)); }
+
+function openTaskModal(task) {
+  const t = task || {title:'',description:'',assignedTo:'',dueDate:'',priority:'media'};
+  const html = `
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h2>${task?'Editar tarefa':'Nova tarefa'}</h2>
+      <form onsubmit="saveTask(event,'${task?task.id:''}')">
+        <div class="form-field"><label>Título</label><input id="ft-title" required value="${t.title}"></div>
+        <div class="form-field"><label>Descrição</label><textarea id="ft-desc" rows="3" style="resize:vertical">${t.description}</textarea></div>
+        <div class="form-grid-2">
+          <div class="form-field"><label>Responsável</label>
+            <select id="ft-assigned" required>
+              <option value="">Selecionar</option>
+              ${USERS.map(u=>`<option value="${u.id}"${t.assignedTo===u.id?' selected':''}>${u.name}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-field"><label>Prioridade</label>
+            <select id="ft-prio">
+              ${Object.entries(PRIO).map(([k,v])=>`<option value="${k}"${t.priority===k?' selected':''}>${v.label}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-field"><label>Prazo</label><input id="ft-due" type="date" value="${t.dueDate||''}"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary-grad">${task?'Salvar':'Criar'}</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+  showModal(html);
+}
+
+function saveTask(e, id) {
+  e.preventDefault();
+  const assignedTo = document.getElementById('ft-assigned').value;
+  const assignee = USERS.find(u=>u.id===assignedTo);
+  const data = {
+    id: id||'t'+Date.now(),
+    title: document.getElementById('ft-title').value,
+    description: document.getElementById('ft-desc').value,
+    assignedTo, assigneeName: assignee?assignee.name:'',
+    createdBy: currentUser.id,
+    status: id ? DB.tasks.find(t=>t.id===id).status : 'pendente',
+    priority: document.getElementById('ft-prio').value,
+    dueDate: document.getElementById('ft-due').value || null,
+    comments: id ? DB.tasks.find(t=>t.id===id).comments : []
+  };
+  if (id) {
+    const idx = DB.tasks.findIndex(t=>t.id===id);
+    DB.tasks[idx] = data;
+    toast('Tarefa atualizada!','✅');
+  } else {
+    DB.tasks.push(data);
+    if(assignedTo) DB.notifications.push({id:'n'+Date.now(),userId:assignedTo,type:'task',title:'Nova Tarefa',message:`Você recebeu a tarefa: "${data.title}"`,read:false,createdAt:new Date().toISOString()});
+    toast('Tarefa criada!','✅');
+  }
+  closeModal();
+  navigate('tarefas');
+}
+
+function openTaskDetail(id) {
+  const t = DB.tasks.find(t=>t.id===id);
+  if(!t) return;
+  const canManage = ['admin','pastoral'].includes(currentUser.role);
+  const html = `
+  <div class="drawer-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="drawer">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+        <h2 style="font-size:17px;font-weight:700;color:#1E1B4B;flex:1;margin-right:10px">${t.title}</h2>
+        <button onclick="closeModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6B7280">✕</button>
+      </div>
+      <div style="background:#F9FAFB;border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#6B7280">Responsável</span><strong>${t.assigneeName||'-'}</strong></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#6B7280">Prioridade</span><strong style="color:${PRIO[t.priority]?.color}">${PRIO[t.priority]?.label}</strong></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:#6B7280">Prazo</span><strong>${t.dueDate?new Date(t.dueDate+'T12:00:00').toLocaleDateString('pt-BR'):'-'}</strong></div>
+      </div>
+      ${t.description?`<div style="margin-bottom:16px"><p style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">Descrição</p><p style="font-size:13px;color:#4B5563;line-height:1.6">${t.description}</p></div>`:''}
+      <div style="margin-bottom:20px">
+        <p style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px">Atualizar status</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${STATUS_COLS.map(col=>`<button onclick="updateTaskStatus('${t.id}','${col.key}')" style="padding:6px 12px;border-radius:8px;border:1.5px solid ${col.color};background:${t.status===col.key?col.color:'white'};color:${t.status===col.key?'white':col.color};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${col.label}</button>`).join('')}
+        </div>
+      </div>
+      <div>
+        <p style="font-size:12px;font-weight:600;color:#374151;margin-bottom:10px">Comentários (${(t.comments||[]).length})</p>
+        <div style="max-height:200px;overflow-y:auto;margin-bottom:10px" id="comments-list">
+          ${(t.comments||[]).map(c=>`<div style="background:#F3F4F6;border-radius:8px;padding:8px 12px;margin-bottom:6px"><div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:3px">${c.userName}</div><div style="font-size:13px;color:#4B5563">${c.text}</div></div>`).join('')}
+          ${(t.comments||[]).length===0?`<p style="font-size:13px;color:#9CA3AF">Nenhum comentário ainda</p>`:''}
+        </div>
+        <div style="display:flex;gap:8px">
+          <input id="comment-input" placeholder="Adicionar comentário..." style="flex:1;padding:8px 12px;border-radius:8px;border:1.5px solid #E5E7EB;font-size:13px;outline:none">
+          <button onclick="addComment('${t.id}')" style="background:#7C3AED;color:white;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:14px">↑</button>
+        </div>
+      </div>
+      ${canManage?`<div style="margin-top:20px;padding-top:16px;border-top:1px solid #E5E7EB;display:flex;gap:8px">
+        <button class="btn btn-sm btn-ghost-purple" onclick="closeModal();openEditTask('${t.id}')">Editar tarefa</button>
+        <button class="btn btn-sm btn-ghost-red" onclick="deleteTask('${t.id}')">Remover</button>
+      </div>`:''}
+    </div>
+  </div>`;
+  showModal(html);
+}
+
+function updateTaskStatus(id, status) {
+  const t = DB.tasks.find(t=>t.id===id);
+  t.status = status;
+  if(status==='aguardando_revisao') {
+    DB.notifications.push({id:'n'+Date.now(),userId:t.createdBy,type:'task_review',title:'Tarefa aguardando revisão',message:`"${t.title}" foi enviada para revisão por ${currentUser.name}`,read:false,createdAt:new Date().toISOString()});
+  }
+  toast('Status atualizado!','✅');
+  closeModal();
+  navigate('tarefas');
+}
+
+function addComment(taskId) {
+  const input = document.getElementById('comment-input');
+  if(!input.value.trim()) return;
+  const t = DB.tasks.find(t=>t.id===taskId);
+  const c = {id:'c'+Date.now(),userId:currentUser.id,userName:currentUser.name,text:input.value,createdAt:new Date().toISOString()};
+  t.comments.push(c);
+  input.value = '';
+  const list = document.getElementById('comments-list');
+  list.innerHTML += `<div style="background:#F3F4F6;border-radius:8px;padding:8px 12px;margin-bottom:6px"><div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:3px">${c.userName}</div><div style="font-size:13px;color:#4B5563">${c.text}</div></div>`;
+}
+
+function deleteTask(id) {
+  if(!confirm('Remover esta tarefa?')) return;
+  DB.tasks = DB.tasks.filter(t=>t.id!==id);
+  toast('Tarefa removida','🗑');
+  closeModal();
+  navigate('tarefas');
+}
+
+// =================== MÍDIAS ===================
+function renderMidias() {
+  const canDelete = currentUser.role === 'admin';
+  const grouped = DB.media.reduce((acc,m) => {
+    const f = m.folderName||'Geral';
+    if(!acc[f]) acc[f]=[];
+    acc[f].push(m);
+    return acc;
+  },{});
+
+  function fmtSize(b) {
+    if(b<1024*1024) return (b/1024).toFixed(0)+' KB';
+    return (b/(1024*1024)).toFixed(1)+' MB';
+  }
+
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Repositório de Mídia</div><div class="page-subtitle">Fotos e vídeos dos cultos — integrado ao Google Drive</div></div>
+    <button class="btn btn-primary-grad" onclick="openUpload()">📤 Fazer upload</button>
+  </div>
+  ${DB.media.length===0?`<div style="text-align:center;padding:60px;color:#9CA3AF"><div style="font-size:48px;margin-bottom:12px">📁</div><p style="font-size:16px">Nenhum arquivo ainda</p></div>`:''}
+  ${Object.entries(grouped).map(([folder,files]) => `
+    <div style="margin-bottom:28px">
+      <h2 style="font-size:15px;font-weight:600;color:#374151;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        📂 ${folder} <span style="font-size:12px;color:#9CA3AF;font-weight:400">(${files.length} arquivo${files.length!==1?'s':''})</span>
+      </h2>
+      <div class="media-grid">
+        ${files.map(f => `
+          <div class="media-card">
+            <div class="media-thumb">
+              <span>${f.type==='foto'?'🖼':'🎬'}</span>
+              <span class="media-type-badge" style="background:${f.type==='foto'?'#3B82F6':'#8B5CF6'}">${f.type==='foto'?'FOTO':'VÍDEO'}</span>
+            </div>
+            <div class="media-info">
+              <div class="media-name" title="${f.name}">${f.name}</div>
+              <div class="media-meta">${fmtSize(f.size)} · ${f.uploaderName}</div>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-sm btn-ghost-purple" style="flex:1;text-align:center">Abrir Drive</button>
+                ${canDelete?`<button class="btn btn-sm btn-ghost-red" onclick="deleteMedia('${f.id}')">✕</button>`:''}
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`).join('')}`;
+}
+
+function deleteMedia(id) {
+  if(!confirm('Remover este arquivo?')) return;
+  DB.media = DB.media.filter(m=>m.id!==id);
+  toast('Arquivo removido','🗑');
+  navigate('midias');
+}
+
+function openUpload() {
+  const html = `
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h2>Upload de arquivo</h2>
+      <div class="upload-zone" onclick="document.getElementById('file-inp').click()">
+        <div style="font-size:32px;margin-bottom:8px" id="upload-icon">📤</div>
+        <p style="font-size:14px;color:#6B7280" id="upload-label">Clique para selecionar foto ou vídeo</p>
+        <input id="file-inp" type="file" accept="image/*,video/*" style="display:none" onchange="handleFileSelect(this)">
+      </div>
+      <div class="form-field">
+        <label>Culto relacionado</label>
+        <select id="up-schedule">
+          <option value="">Arquivo geral</option>
+          ${DB.schedules.map(s=>`<option value="${s.id}">${s.title} (${new Date(s.date+'T12:00:00').toLocaleDateString('pt-BR')})</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Descrição (opcional)</label>
+        <input id="up-desc" placeholder="Ex: Fotos da pregação">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary-grad" onclick="fakeUpload()">Enviar arquivo</button>
+      </div>
+    </div>
+  </div>`;
+  showModal(html);
+}
+
+function handleFileSelect(inp) {
+  if(inp.files[0]) {
+    document.getElementById('upload-icon').textContent = '✅';
+    document.getElementById('upload-label').textContent = inp.files[0].name;
+  }
+}
+
+function fakeUpload() {
+  const inp = document.getElementById('file-inp');
+  const file = inp.files[0];
+  const scheduleId = document.getElementById('up-schedule').value;
+  const desc = document.getElementById('up-desc').value;
+
+  if(!file) { toast('Selecione um arquivo','❌'); return; }
+
+  const schedule = DB.schedules.find(s=>s.id===scheduleId);
+  const folderName = schedule ? `${schedule.date} - ${schedule.title}` : 'Geral';
+  const isImg = file.type.startsWith('image/');
+
+  DB.media.push({
+    id:'m'+Date.now(), name:file.name, type:isImg?'foto':'video',
+    size:file.size, folderName, uploaderName:currentUser.name,
+    driveUrl:'#', thumbnailUrl:'', description:desc
+  });
+
+  DB.notifications.push({
+    id:'n'+Date.now(), userId:'1', type:'media_upload',
+    title:'Novo material enviado',
+    message:`${currentUser.name} enviou "${file.name}" para ${folderName}`,
+    read:false, createdAt:new Date().toISOString()
+  });
+
+  toast('Arquivo enviado com sucesso!','✅');
+  closeModal();
+  navigate('midias');
+}
+
+// =================== USUÁRIOS ===================
+function renderUsuarios() {
+  if(currentUser.role !== 'admin') return '<p>Acesso restrito</p>';
+  const byRole = {admin:[],pastoral:[],secretaria:[],voluntario:[]};
+  USERS.forEach(u => { if(byRole[u.role]) byRole[u.role].push(u); });
+  const roleLabels = {admin:'Líderes',pastoral:'Pastoral',secretaria:'Secretaria',voluntario:'Voluntários'};
+  const roleColors = ROLE_COLORS;
+
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Usuários</div><div class="page-subtitle">Gerencie a equipe e seus acessos</div></div>
+    <button class="btn btn-primary-grad" onclick="openNewUser()">+ Novo usuário</button>
+  </div>
+  ${Object.entries(byRole).map(([role, users]) => users.length===0?'':`
+    <div class="role-section">
+      <div class="role-header">${roleLabels[role]} (${users.length})</div>
+      <div class="users-grid">
+        ${users.map(u=>`
+          <div class="user-card">
+            <div class="avatar" style="background:linear-gradient(135deg,${roleColors[u.role]},${roleColors[u.role]}aa)">${u.name.charAt(0)}</div>
+            <div style="flex:1;min-width:0">
+              <div class="user-name">${u.name}</div>
+              <div class="user-email">${u.email}</div>
+            </div>
+            <div style="display:flex;gap:4px;flex-shrink:0">
+              <button class="btn btn-sm" style="background:#F3F4F6;border:none" onclick="alert('Em produção, abriria o formulário de edição')">Editar</button>
+              <button class="btn btn-sm btn-ghost-red" onclick="alert('Em produção, removeria o usuário')">✕</button>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`).join('')}`;
+}
+
+function openNewUser() {
+  const html = `
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h2>Novo usuário</h2>
+      <div class="form-field"><label>Nome completo</label><input id="nu-name" required placeholder="Nome do voluntário"></div>
+      <div class="form-field"><label>Email</label><input id="nu-email" type="email" required placeholder="email@exemplo.com"></div>
+      <div class="form-field"><label>Senha</label><input id="nu-pass" type="password" required placeholder="Mínimo 6 caracteres"></div>
+      <div class="form-field"><label>Telefone</label><input id="nu-phone" placeholder="(11) 99999-9999"></div>
+      <div class="form-field"><label>Perfil</label>
+        <select id="nu-role">
+          <option value="voluntario">Voluntário</option>
+          <option value="secretaria">Secretaria</option>
+          <option value="pastoral">Pastoral</option>
+          <option value="admin">Líder de Mídias (Admin)</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary-grad" onclick="createUser()">Criar usuário</button>
+      </div>
+    </div>
+  </div>`;
+  showModal(html);
+}
+
+function createUser() {
+  const name = document.getElementById('nu-name').value;
+  const email = document.getElementById('nu-email').value;
+  const pass = document.getElementById('nu-pass').value;
+  const phone = document.getElementById('nu-phone').value;
+  const role = document.getElementById('nu-role').value;
+  if(!name||!email||!pass) { toast('Preencha todos os campos obrigatórios','❌'); return; }
+  if(USERS.find(u=>u.email===email)) { toast('Email já cadastrado','❌'); return; }
+  USERS.push({id:'u'+Date.now(),name,email,password:pass,role,phone});
+  toast('Usuário criado!','✅');
+  closeModal();
+  navigate('usuarios');
+}
+
+// =================== PERFIL ===================
+function renderPerfil() {
+  return `
+  <div style="max-width:520px">
+    <div class="page-title" style="margin-bottom:24px">Meu Perfil</div>
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+        <div class="avatar lg">${currentUser.name.charAt(0)}</div>
+        <div>
+          <div style="font-size:18px;font-weight:700;color:#1F2937;margin-bottom:4px">${currentUser.name}</div>
+          <span class="badge" style="background:${ROLE_COLORS[currentUser.role]}20;color:${ROLE_COLORS[currentUser.role]}">${ROLE_LABELS[currentUser.role]}</span>
+        </div>
+      </div>
+      <div style="font-size:13px">
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F3F4F6"><span style="color:#6B7280">Email</span><strong>${currentUser.email}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0"><span style="color:#6B7280">Telefone</span><strong>${currentUser.phone||'Não informado'}</strong></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:16px;font-weight:600;margin-bottom:16px">Alterar senha</h3>
+      <div class="form-field"><label>Senha atual</label><input type="password" id="cp-current" placeholder="••••••••"></div>
+      <div class="form-field"><label>Nova senha</label><input type="password" id="cp-new" placeholder="••••••••"></div>
+      <div class="form-field"><label>Confirmar nova senha</label><input type="password" id="cp-confirm" placeholder="••••••••"></div>
+      <button class="btn btn-primary-grad" onclick="changePassword()">Alterar senha</button>
+    </div>
+  </div>`;
+}
+
+function changePassword() {
+  const current = document.getElementById('cp-current').value;
+  const newPass = document.getElementById('cp-new').value;
+  const confirm = document.getElementById('cp-confirm').value;
+  if(current !== currentUser.password) { toast('Senha atual incorreta','❌'); return; }
+  if(newPass.length < 6) { toast('Nova senha deve ter pelo menos 6 caracteres','❌'); return; }
+  if(newPass !== confirm) { toast('As senhas não coincidem','❌'); return; }
+  currentUser.password = newPass;
+  toast('Senha alterada com sucesso!','✅');
+  document.getElementById('cp-current').value='';
+  document.getElementById('cp-new').value='';
+  document.getElementById('cp-confirm').value='';
+}
+
+// =================== MODAL HELPER ===================
+function showModal(html) {
+  const el = document.createElement('div');
+  el.id = 'modal-root';
+  el.innerHTML = html;
+  document.body.appendChild(el);
+}
+function closeModal() {
+  const el = document.getElementById('modal-root');
+  if(el) el.remove();
+}
+
+// =================== TOAST ===================
+function toast(message, icon='✅') {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// Fechar dropdowns ao clicar fora
+document.addEventListener('click', function(e) {
+  if(!e.target.closest('#notif-panel') && !e.target.closest('button[onclick="toggleNotif()"]')) {
+    document.getElementById('notif-panel').style.display='none'; showNotif=false;
+  }
+  if(!e.target.closest('#user-menu') && !e.target.closest('#topbar-avatar')) {
+    document.getElementById('user-menu').style.display='none'; showUserMenu=false;
+  }
+});
+</script>
+</body>
+</html>
