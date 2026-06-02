@@ -70,7 +70,7 @@ async function sendMessage(phone, message) {
 /**
  * Notifica um voluntário que foi escalado
  */
-async function notificarEscalado({ nome, phone, titulo, data, hora, funcao, urlSistema }) {
+async function notificarEscalado({ nome, phone, titulo, data, hora, funcao, urlSistema, confirmToken }) {
   if (!phone) return false;
 
   const dataFormatada = new Date(data + 'T00:00:00').toLocaleDateString('pt-BR', {
@@ -79,7 +79,12 @@ async function notificarEscalado({ nome, phone, titulo, data, hora, funcao, urlS
 
   const horaTexto = hora ? ` às ${hora}` : '';
   const funcaoTexto = funcao ? `\n📌 *Função:* ${funcao}` : '';
-  const linkTexto = urlSistema ? `\n\n🔗 Acesse o sistema para confirmar ou recusar:\n${urlSistema}` : '';
+
+  // Link direto de confirmação (sem precisar de login)
+  const baseUrl = urlSistema || 'https://sgmm-igreja-betel-production.up.railway.app';
+  const linkConfirmacao = confirmToken
+    ? `\n\n👇 *Confirme sua presença pelo link abaixo:*\n${baseUrl}/api/schedules/confirmar/${confirmToken}`
+    : `\n\n🔗 Acesse o sistema: ${baseUrl}`;
 
   const mensagem =
     `Olá, *${nome}*! 👋\n\n` +
@@ -87,7 +92,7 @@ async function notificarEscalado({ nome, phone, titulo, data, hora, funcao, urlS
     `📅 *${titulo}*\n` +
     `🗓 ${dataFormatada}${horaTexto}` +
     funcaoTexto +
-    linkTexto +
+    linkConfirmacao +
     `\n\nQualquer dúvida, fale com o líder. Deus abençoe! 🙏`;
 
   return sendMessage(phone, mensagem);
@@ -103,11 +108,4 @@ async function notificarLider({ phoneL, nomeVoluntario, tituloEscala, status }) 
   const acao = status === 'confirmed' ? 'confirmou' : 'recusou';
 
   const mensagem =
-    `${emoji} *${nomeVoluntario}* ${acao} presença na escala:\n\n` +
-    `📅 *${tituloEscala}*\n\n` +
-    `Acesse o sistema para ver os detalhes.`;
-
-  return sendMessage(phoneL, mensagem);
-}
-
-module.exports = { sendMessage, notificarEscalado, notificarLider };
+    `${em

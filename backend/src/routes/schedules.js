@@ -57,8 +57,9 @@ router.post('/', authMiddleware, requireRole('admin', 'secretaria'), (req, res) 
     notes: notes || '',
     assignments: (assignments || []).map(a => ({
       userId: a.userId,
-      function: a.function, // fotógrafo, editor, operador de som, projeção, etc.
-      status: 'pending' // pending, confirmed, declined
+      function: a.function,
+      status: 'pending',
+      confirmToken: uuidv4() // token único para confirmação por link
     })),
     createdBy: req.user.id,
     createdAt: new Date().toISOString(),
@@ -91,7 +92,8 @@ router.post('/', authMiddleware, requireRole('admin', 'secretaria'), (req, res) 
         data: newSchedule.date,
         hora: newSchedule.time,
         funcao: a.function,
-        urlSistema
+        urlSistema,
+        confirmToken: a.confirmToken
       }).catch(err => console.error('[WhatsApp] Erro ao notificar escalado:', err.message));
     }
   });
@@ -183,4 +185,4 @@ router.post('/:id/confirm', authMiddleware, (req, res) => {
   res.json({ message: `Presença ${status === 'confirmed' ? 'confirmada' : 'recusada'} com sucesso` });
 });
 
-module.exports = router;
+//
