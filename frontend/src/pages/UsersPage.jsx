@@ -1,7 +1,7 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import { AuthContext } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const ROLES = {
   admin: {
@@ -55,7 +55,7 @@ function Avatar({ name, role, size = 40 }) {
 }
 
 export default function UsersPage() {
-  const { user: currentUser } = useContext(AuthContext);
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -364,3 +364,4 @@ export default function UsersPage() {
     </div>
   );
 }
+                              
