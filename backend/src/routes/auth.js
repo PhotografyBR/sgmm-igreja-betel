@@ -76,4 +76,33 @@ router.post('/change-password', authMiddleware, async (req, res) => {
   res.json({ message: 'Senha alterada com sucesso' });
 });
 
+// PUT /api/auth/update-profile - atualizar próprio perfil (nome, email, telefone)
+router.put('/update-profile', authMiddleware, async (req, res) => {
+  const { name, email, phone } = req.body;
+  const db = readDB();
+  const userIndex = db.users.findIndex(u => u.id === req.user.id);
+
+  if (userIndex === -1) return res.status(404).json({ error: 'Usuário não encontrado' });
+
+  // Verifica se o novo email já está em uso por outro usuário
+  if (email && email.toLowerCase() !== db.users[userIndex].email) {
+    const emailExists = db.users.find(u => u.email === email.toLowerCase() && u.id !== req.user.id);
+    if (emailExists) return res.status(400).json({ error: 'Este email já está em uso' });
+    db.users[userIndex].email = email.toLowerCase();
+  }
+
+  if (name) db.users[userIndex].name = name;
+  if (phone !== undefined) db.users[userIndex].phone = phone;
+
+  writeDB(db);
+
+  res.json({
+    id: db.users[userIndex].id,
+    name: db.users[userIndex].name,
+    email: db.users[userIndex].email,
+    role: db.users[userIndex].role,
+    phone: db.users[userIndex].phone
+  });
+});
+
 module.exports = router;

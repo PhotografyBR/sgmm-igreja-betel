@@ -46,12 +46,19 @@ export function AuthProvider({ children }) {
   const canManageUsers = isAdmin;
   const canViewMedia = isAdmin || isPastoral;
 
+  function updateUser(newData) {
+    const updated = { ...user, ...newData };
+    setUser(updated);
+    localStorage.setItem('sgmm_user', JSON.stringify(updated));
+  }
+
   return (
     <AuthContext.Provider value={{
       user,
       loading,
       login,
       logout,
+      updateUser,
       isAdmin,
       isPastoral,
       isSecretaria,
