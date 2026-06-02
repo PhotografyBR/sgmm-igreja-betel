@@ -2,6 +2,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { readDB, writeDB } = require('../config/database');
 const { authMiddleware, requireRole } = require('../middleware/auth');
+const { notificarEscalado, notificarLider } = require('../services/whatsapp');
 
 const router = express.Router();
 
@@ -66,7 +67,7 @@ router.post('/', authMiddleware, requireRole('admin', 'secretaria'), (req, res) 
 
   db.schedules.push(newSchedule);
 
-  // Criar notificações para os escalados
+  // Criar notificações internas e enviar WhatsApp para os escalados
   newSchedule.assignments.forEach(a => {
     db.notifications.push({
       id: uuidv4(),
@@ -78,6 +79,21 @@ router.post('/', authMiddleware, requireRole('admin', 'secretaria'), (req, res) 
       read: false,
       createdAt: new Date().toISOString()
     });
+
+    // Envia WhatsApp (assíncrono, sem bloquear a resposta)
+    const voluntario = db.users.find(u => u.id === a.userId);
+    if (voluntario?.phone) {
+      const urlSistema = process.env.FRONTEND_URL || 'https://sgmm-igreja-betel-production.up.railway.app';
+      notificarEscalado({
+        nome: voluntario.name,
+        phone: voluntario.phone,
+        titulo: newSchedule.title,
+        data: newSchedule.date,
+        hora: newSchedule.time,
+        funcao: a.function,
+        urlSistema
+      }).catch(err => console.error('[WhatsApp] Erro ao notificar escalado:', err.message));
+    }
   });
 
   writeDB(db);
@@ -138,7 +154,7 @@ router.post('/:id/confirm', authMiddleware, (req, res) => {
   db.schedules[schedIdx].assignments[assignIdx].status = status;
   db.schedules[schedIdx].updatedAt = new Date().toISOString();
 
-  // Notificar o líder
+  // Notificar o líder (notificação interna + WhatsApp)
   const schedule = db.schedules[schedIdx];
   const confirmText = status === 'confirmed' ? 'confirmou' : 'recusou';
   db.notifications.push({
@@ -151,6 +167,17 @@ router.post('/:id/confirm', authMiddleware, (req, res) => {
     read: false,
     createdAt: new Date().toISOString()
   });
+
+  // Envia WhatsApp para o líder que criou a escala
+  const lider = db.users.find(u => u.id === schedule.createdBy);
+  if (lider?.phone) {
+    notificarLider({
+      phoneL: lider.phone,
+      nomeVoluntario: req.user.name,
+      tituloEscala: schedule.title,
+      status
+    }).catch(err => console.error('[WhatsApp] Erro ao notificar líder:', err.message));
+  }
 
   writeDB(db);
   res.json({ message: `Presença ${status === 'confirmed' ? 'confirmada' : 'recusada'} com sucesso` });
