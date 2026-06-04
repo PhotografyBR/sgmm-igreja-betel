@@ -108,4 +108,11 @@ async function notificarLider({ phoneL, nomeVoluntario, tituloEscala, status }) 
   const acao = status === 'confirmed' ? 'confirmou' : 'recusou';
 
   const mensagem =
-    `${em
+        `${emoji} *${nomeVoluntario}* ${acao} presença na escala:\n\n` +
+    `📅 *${tituloEscala}*\n\n` +
+    `Acesse o sistema para ver os detalhes.`;
+
+  return sendMessage(phoneL, mensagem);
+}
+
+module.exports = { sendMessage, notificarEscalado, notificarLider };
