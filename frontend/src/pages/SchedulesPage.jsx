@@ -360,6 +360,13 @@ export default function SchedulesPage() {
   );
 }
 
+      {showWhatsApp && escalaCriada && (
+        <ModalWhatsApp
+          escala={escalaCriada}
+          users={users}
+          onClose={() => { setShowWhatsApp(false); setEscalaCriada(null); }}
+        />
+      )}
 // Modal WhatsApp
 function ModalWhatsApp({ escala, users, onClose }) {
   const FRONTEND_URL = 'https://sgmm-igreja-betel-production.up.railway.app';
