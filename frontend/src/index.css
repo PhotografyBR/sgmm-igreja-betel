@@ -22,7 +22,7 @@
   --gray-700: #374151;
   --gray-800: #1F2937;
   --gray-900: #111827;
-  --sidebar-width: 250px;
+  --sidebar-width: 260px;
 }
 
 body {
@@ -32,44 +32,83 @@ body {
   line-height: 1.5;
 }
 
-button {
-  cursor: pointer;
-  font-family: inherit;
-}
+button { cursor: pointer; font-family: inherit; }
+input, textarea, select { font-family: inherit; }
+a { text-decoration: none; color: inherit; }
 
-input, textarea, select {
-  font-family: inherit;
-}
-
-a {
-  text-decoration: none;
-  color: inherit;
-}
-
-/* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--gray-100); }
 ::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
 
-/* Animações */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+.fade-in { animation: fadeIn 0.2s ease; }
 
-.fade-in {
-  animation: fadeIn 0.2s ease;
-}
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner { animation: spin 1s linear infinite; }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.spinner {
-  animation: spin 1s linear infinite;
-}
-
-/* Responsivo */
+/* ─── MOBILE ─────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  :root { --sidebar-width: 0px; }
+
+  aside {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    height: 100vh !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.28s ease !important;
+    z-index: 50 !important;
+  }
+
+  aside.sidebar-open {
+    transform: translateX(0) !important;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.3) !important;
+  }
+
+  .mobile-overlay { display: block !important; }
+
+  main { padding: 16px !important; }
+
+  h1 { font-size: 20px !important; }
+
+  /* Calendário: painel lateral vai embaixo */
+  .cal-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Modal: bottom sheet */
+  .modal-outer {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  .modal-inner {
+    border-radius: 20px 20px 0 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 92vh !important;
+    padding: 20px 16px !important;
+  }
+
+  /* Funções do modal: empilha verticalmente */
+  .funcao-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+  }
+
+  .funcao-label {
+    width: auto !important;
+  }
+
+  button { min-height: 40px; }
+
+  header { padding: 0 12px !important; }
+}
+
+@media (max-width: 480px) {
+  main { padding: 12px !important; }
+  h1 { font-size: 18px !important; }
 }
