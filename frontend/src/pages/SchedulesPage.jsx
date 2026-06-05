@@ -34,7 +34,7 @@ export default function SchedulesPage() {
     try {
       const [schedRes, usersRes] = await Promise.all([
         api.get('/schedules', { params: { month: currentMonth.getMonth() + 1, year: currentMonth.getFullYear() } }),
-        canManageSchedules ? api.get('/users/voluntarios') : Promise.resolve({ data: [] })
+        canManageSchedules ? api.get('/users/voluntarios') : api.get('/users/voluntarios').catch(() => ({ data: [] }))
       ]);
       setSchedules(schedRes.data);
       setUsers(usersRes.data);
@@ -173,7 +173,7 @@ export default function SchedulesPage() {
       {loading ? <p style={{ color: '#9CA3AF' }}>Carregando...</p> : (
         <>
           {view === 'calendario' && (
-            <div className="cal-grid" style={{ display: 'grid', gridTemplateColumns: selectedDay ? '1fr 320px' : '1fr', gap: 16 }}>
+            <div className="cal-grid" style={{ display: 'grid', gridTemplateColumns: selectedDay ? '1fr 340px' : '1fr', gap: 16 }}>
               <div style={{ background: 'white', borderRadius: 16, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', marginBottom: 4 }}>
                   {DAYS.map(d => (
@@ -220,7 +220,7 @@ export default function SchedulesPage() {
               </div>
 
               {selectedDay && (
-                <div style={{ background: 'white', borderRadius: 16, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', alignSelf: 'start' }}>
+                <div style={{ background: 'white', borderRadius: 16, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', alignSelf: 'start', maxHeight: '80vh', overflowY: 'auto' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                     <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1F2937' }}>
                       {new Date(formatDateStr(selectedDay) + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -241,7 +241,7 @@ export default function SchedulesPage() {
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {selectedSchedules.map(s => <ScheduleCard key={s.id} s={s} user={user} canManage={canManageSchedules} onEdit={openEdit} onDelete={handleDelete} onConfirm={handleConfirm} />)}
+                      {selectedSchedules.map(s => <ScheduleCard key={s.id} s={s} user={user} users={users} canManage={canManageSchedules} onEdit={openEdit} onDelete={handleDelete} onConfirm={handleConfirm} />)}
                       {canManageSchedules && (
                         <button onClick={() => openNew(formatDateStr(selectedDay))} style={{
                           background: 'none', border: '1.5px dashed #D1D5DB', color: '#9CA3AF',
@@ -265,7 +265,7 @@ export default function SchedulesPage() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {sortedSchedules.map(s => (
-                  <ScheduleCard key={s.id} s={s} user={user} canManage={canManageSchedules} onEdit={openEdit} onDelete={handleDelete} onConfirm={handleConfirm} expanded />
+                  <ScheduleCard key={s.id} s={s} user={user} users={users} canManage={canManageSchedules} onEdit={openEdit} onDelete={handleDelete} onConfirm={handleConfirm} expanded />
                 ))}
               </div>
             )
@@ -314,8 +314,8 @@ export default function SchedulesPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {form.assignments.map((a, idx) => (
                     <div key={a.function} className="funcao-row" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{
-                        width: 190, flexShrink: 0, fontSize: 12, fontWeight: 600, color: '#374151',
+                      <div className="funcao-label" style={{
+                        width: 180, flexShrink: 0, fontSize: 13, fontWeight: 600, color: '#374151',
                         background: '#F3F4F6', borderRadius: 8, padding: '8px 12px'
                       }}>
                         {a.function}
@@ -351,47 +351,32 @@ export default function SchedulesPage() {
   );
 }
 
-function ScheduleCard({ s, user, canManage, onEdit, onDelete, onConfirm, expanded }) {
+function ScheduleCard({ s, user, users = [], canManage, onEdit, onDelete, onConfirm, expanded }) {
   const myAssignment = s.assignments?.find(a => a.userId === user?.id);
   const typeColor = TYPE_COLORS[s.type] || '#7C3AED';
 
+  const assignmentsComNome = s.assignments?.map(a => ({
+    ...a,
+    nome: users.find(u => u.id === a.userId)?.name || 'Voluntário'
+  })) || [];
+
+  const statusIcon = { confirmed: '✅', declined: '❌', pending: '⏳' };
+  const statusBg = { confirmed: '#D1FAE5', declined: '#FEE2E2', pending: '#FEF3C7' };
+  const statusFg = { confirmed: '#065F46', declined: '#991B1B', pending: '#92400E' };
+
   return (
-    <div style={{ background: 'white', borderRadius: 12, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', borderLeft: `3px solid ${typeColor}` }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+    <div style={{ background: 'white', borderRadius: 12, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', borderLeft: `4px solid ${typeColor}` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: assignmentsComNome.length > 0 ? 10 : 0 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: '#1F2937' }}>{s.title}</span>
             <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 10, background: typeColor + '20', color: typeColor, fontWeight: 600 }}>{s.type}</span>
           </div>
+          {s.time && <p style={{ color: '#9CA3AF', fontSize: 12 }}>🕐 {s.time}</p>}
           {expanded && (
-            <p style={{ color: '#6B7280', fontSize: 12, marginBottom: 8 }}>
+            <p style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>
               📅 {new Date(s.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-              {s.time && ` · 🕐 ${s.time}`}
             </p>
-          )}
-          {!expanded && s.time && <p style={{ color: '#9CA3AF', fontSize: 11, marginBottom: 6 }}>🕐 {s.time}</p>}
-          {s.assignments?.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: myAssignment ? 8 : 0 }}>
-              {s.assignments.map((a, i) => (
-                <span key={i} style={{
-                  fontSize: 11, padding: '2px 7px', borderRadius: 10,
-                  background: STATUS_COLORS[a.status] + '18', color: STATUS_COLORS[a.status], fontWeight: 500
-                }}>
-                  {a.function}
-                </span>
-              ))}
-            </div>
-          )}
-          {myAssignment?.status === 'pending' && (
-            <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-              <button onClick={() => onConfirm(s.id, 'confirmed')} style={{ background: '#D1FAE5', color: '#065F46', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>✅ Confirmar</button>
-              <button onClick={() => onConfirm(s.id, 'declined')} style={{ background: '#FEE2E2', color: '#991B1B', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>❌ Recusar</button>
-            </div>
-          )}
-          {myAssignment && myAssignment.status !== 'pending' && (
-            <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 10, background: myAssignment.status === 'confirmed' ? '#D1FAE5' : '#FEE2E2', color: myAssignment.status === 'confirmed' ? '#065F46' : '#991B1B', fontWeight: 600, display: 'inline-block', marginTop: 4 }}>
-              {myAssignment.status === 'confirmed' ? '✅ Você confirmou' : '❌ Você recusou'}
-            </span>
           )}
         </div>
         {canManage && (
@@ -401,6 +386,61 @@ function ScheduleCard({ s, user, canManage, onEdit, onDelete, onConfirm, expande
           </div>
         )}
       </div>
+
+      {assignmentsComNome.length > 0 && (
+        <div style={{ borderTop: '1px solid #F3F4F6', paddingTop: 10 }}>
+          <p style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+            Equipe ({assignmentsComNome.length})
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {assignmentsComNome.map((a, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                    background: `hsl(${(a.userId?.charCodeAt(0) || 0) * 37 % 360}, 55%, 65%)`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 11, fontWeight: 700, color: 'white'
+                  }}>
+                    {a.nome.charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.nome}</div>
+                    <div style={{ fontSize: 11, color: '#6B7280' }}>{a.function}</div>
+                  </div>
+                </div>
+                <span style={{
+                  fontSize: 11, padding: '3px 8px', borderRadius: 20, fontWeight: 600, flexShrink: 0,
+                  background: statusBg[a.status], color: statusFg[a.status]
+                }}>
+                  {statusIcon[a.status]} {STATUS_LABELS[a.status]}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {assignmentsComNome.length === 0 && (
+        <p style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', marginTop: 4 }}>Nenhum voluntário escalado</p>
+      )}
+
+      {myAssignment?.status === 'pending' && (
+        <div style={{ display: 'flex', gap: 8, marginTop: 12, paddingTop: 10, borderTop: '1px solid #F3F4F6' }}>
+          <button onClick={() => onConfirm(s.id, 'confirmed')} style={{ flex: 1, background: '#10B981', color: 'white', border: 'none', borderRadius: 8, padding: '8px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>✅ Confirmar</button>
+          <button onClick={() => onConfirm(s.id, 'declined')} style={{ flex: 1, background: '#FEE2E2', color: '#EF4444', border: 'none', borderRadius: 8, padding: '8px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>❌ Não posso ir</button>
+        </div>
+      )}
+      {myAssignment && myAssignment.status !== 'pending' && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #F3F4F6' }}>
+          <span style={{
+            fontSize: 12, padding: '4px 10px', borderRadius: 20,
+            background: statusBg[myAssignment.status], color: statusFg[myAssignment.status], fontWeight: 600
+          }}>
+            {statusIcon[myAssignment.status]} {myAssignment.status === 'confirmed' ? 'Você confirmou presença' : 'Você recusou'}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
