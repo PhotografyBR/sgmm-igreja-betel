@@ -77,14 +77,10 @@ export default function SchedulesPage() {
         setShowModal(false);
         loadData();
       } else {
-        const res = await api.post('/schedules', payload);
+        await api.post('/schedules', payload);
         toast.success('Escala criada!');
         setShowModal(false);
         loadData();
-        if (payload.assignments.length > 0) {
-          setEscalaCriada(res.data);
-          setShowWhatsApp(true);
-        }
       }
     } catch (err) { toast.error(err.response?.data?.error || 'Erro ao salvar escala'); }
   }
@@ -254,7 +250,7 @@ export default function SchedulesPage() {
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {selectedSchedules.map(s => <ScheduleCard key={s.id} s={s} user={user} users={users} canManage={canManageSchedules} onEdit={openEdit} onDelete={handleDelete} onConfirm={handleConfirm} />)}
+                      {selectedSchedules.map(s => <ScheduleCard key={s.id} s={s} user={user} users={users} canManage={canManageSchedules} onEdit={openEdit} onDelete={handleDelete} onConfirm={handleConfirm} onAvisar={s => { setEscalaCriada(s); setShowWhatsApp(true); }} />)}
                       {canManageSchedules && (
                         <button onClick={() => openNew(formatDateStr(selectedDay))} style={{
                           background: 'none', border: '1.5px dashed #D1D5DB', color: '#9CA3AF',
@@ -278,7 +274,7 @@ export default function SchedulesPage() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {sortedSchedules.map(s => (
-                  <ScheduleCard key={s.id} s={s} user={user} users={users} canManage={canManageSchedules} onEdit={openEdit} onDelete={handleDelete} onConfirm={handleConfirm} expanded />
+                  <ScheduleCard key={s.id} s={s} user={user} users={users} canManage={canManageSchedules} onEdit={openEdit} onDelete={handleDelete} onConfirm={handleConfirm} onAvisar={s => { setEscalaCriada(s); setShowWhatsApp(true); }} expanded />
                 ))}
               </div>
             )
@@ -437,7 +433,7 @@ function ModalWhatsApp({ escala, users, onClose }) {
   );
 }
 
-function ScheduleCard({ s, user, users = [], canManage, onEdit, onDelete, onConfirm, expanded }) {
+function ScheduleCard({ s, user, users = [], canManage, onEdit, onDelete, onConfirm, onAvisar, expanded }) {
   const myAssignment = s.assignments?.find(a => a.userId === user?.id);
   const typeColor = TYPE_COLORS[s.type] || '#7C3AED';
 
