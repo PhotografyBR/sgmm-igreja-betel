@@ -3,7 +3,13 @@ import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
-const FUNCTIONS = ['Fotógrafo', 'Videógrafo', 'Editor', 'Operador de Som', 'Projeção', 'Transmissão', 'Designer'];
+const FUNCTIONS = [
+  'Captação de Conteúdos',
+  'Telão (Projeção)',
+  'Mesa de Som & Iluminação',
+  'Transmissão (Live)',
+  'Designer/Editor'
+];
 const TYPE_COLORS = { culto: '#7C3AED', reunião: '#2563EB', evento: '#F59E0B' };
 const STATUS_COLORS = { pending: '#F59E0B', confirmed: '#10B981', declined: '#EF4444' };
 const STATUS_LABELS = { pending: 'Pendente', confirmed: 'Confirmado', declined: 'Recusado' };
@@ -17,7 +23,7 @@ export default function SchedulesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [view, setView] = useState('calendario'); // 'calendario' | 'lista'
+  const [view, setView] = useState('calendario');
   const [selectedDay, setSelectedDay] = useState(null);
   const [form, setForm] = useState({ title: '', date: '', time: '', type: 'culto', notes: '', assignments: [] });
 
@@ -39,24 +45,32 @@ export default function SchedulesPage() {
     }
   }
 
+  function buildDefaultAssignments() {
+    return FUNCTIONS.map(f => ({ userId: '', function: f }));
+  }
+
   function openNew(dateStr) {
     setEditing(null);
-    setForm({ title: '', date: dateStr || '', time: '', type: 'culto', notes: '', assignments: [] });
+    setForm({ title: '', date: dateStr || '', time: '', type: 'culto', notes: '', assignments: buildDefaultAssignments() });
     setShowModal(true);
   }
 
   function openEdit(s) {
     setEditing(s);
-    setForm({ title: s.title, date: s.date, time: s.time || '', type: s.type, notes: s.notes || '',
-      assignments: s.assignments.map(a => ({ userId: a.userId, function: a.function })) });
+    const assignments = FUNCTIONS.map(f => {
+      const existing = s.assignments.find(a => a.function === f);
+      return { userId: existing?.userId || '', function: f };
+    });
+    setForm({ title: s.title, date: s.date, time: s.time || '', type: s.type, notes: s.notes || '', assignments });
     setShowModal(true);
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
+    const payload = { ...form, assignments: form.assignments.filter(a => a.userId !== '') };
     try {
-      if (editing) { await api.put(`/schedules/${editing.id}`, form); toast.success('Escala atualizada!'); }
-      else { await api.post('/schedules', form); toast.success('Escala criada!'); }
+      if (editing) { await api.put(`/schedules/${editing.id}`, payload); toast.success('Escala atualizada!'); }
+      else { await api.post('/schedules', payload); toast.success('Escala criada!'); }
       setShowModal(false);
       loadData();
     } catch (err) { toast.error(err.response?.data?.error || 'Erro ao salvar escala'); }
@@ -79,7 +93,6 @@ export default function SchedulesPage() {
   const prevMonth = () => { setSelectedDay(null); setCurrentMonth(d => new Date(d.getFullYear(), d.getMonth() - 1)); };
   const nextMonth = () => { setSelectedDay(null); setCurrentMonth(d => new Date(d.getFullYear(), d.getMonth() + 1)); };
 
-  // Monta a grade do calendário
   function buildCalendarGrid() {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -116,19 +129,16 @@ export default function SchedulesPage() {
   const grid = buildCalendarGrid();
   const selectedSchedules = selectedDay ? getSchedulesForDay(selectedDay) : [];
   const sortedSchedules = [...schedules].sort((a, b) => new Date(a.date) - new Date(b.date));
-
   const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #E5E7EB', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' };
 
   return (
     <div className="fade-in">
-      {/* Cabeçalho */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1E1B4B' }}>Escalas</h1>
           <p style={{ color: '#6B7280', fontSize: 14, marginTop: 2 }}>{schedules.length} escala(s) neste mês</p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {/* Toggle de visualização */}
           <div style={{ background: '#F3F4F6', borderRadius: 10, padding: 3, display: 'flex', gap: 2 }}>
             {['calendario', 'lista'].map(v => (
               <button key={v} onClick={() => setView(v)} style={{
@@ -152,7 +162,6 @@ export default function SchedulesPage() {
         </div>
       </div>
 
-      {/* Navegador de mês */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, background: 'white', padding: '10px 16px', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', width: 'fit-content' }}>
         <button onClick={prevMonth} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#374151', lineHeight: 1 }}>‹</button>
         <span style={{ fontWeight: 700, minWidth: 160, textAlign: 'center', fontSize: 15, color: '#1F2937', textTransform: 'capitalize' }}>
@@ -163,17 +172,14 @@ export default function SchedulesPage() {
 
       {loading ? <p style={{ color: '#9CA3AF' }}>Carregando...</p> : (
         <>
-          {/* ─── VISÃO CALENDÁRIO ─── */}
           {view === 'calendario' && (
             <div style={{ display: 'grid', gridTemplateColumns: selectedDay ? '1fr 320px' : '1fr', gap: 16 }}>
               <div style={{ background: 'white', borderRadius: 16, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-                {/* Cabeçalho dos dias */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', marginBottom: 4 }}>
                   {DAYS.map(d => (
                     <div key={d} style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#9CA3AF', padding: '4px 0', textTransform: 'uppercase' }}>{d}</div>
                   ))}
                 </div>
-                {/* Dias */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2 }}>
                   {grid.map((day, i) => {
                     const daySchedules = getSchedulesForDay(day);
@@ -189,9 +195,7 @@ export default function SchedulesPage() {
                         }}>
                         {day && (
                           <>
-                            <div style={{ textAlign: 'center', fontSize: 13, fontWeight: today ? 700 : 500, color: today ? '#7C3AED' : '#374151', marginBottom: 4 }}>
-                              {day}
-                            </div>
+                            <div style={{ textAlign: 'center', fontSize: 13, fontWeight: today ? 700 : 500, color: today ? '#7C3AED' : '#374151', marginBottom: 4 }}>{day}</div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                               {daySchedules.slice(0, 2).map(s => (
                                 <div key={s.id} style={{
@@ -215,7 +219,6 @@ export default function SchedulesPage() {
                 </div>
               </div>
 
-              {/* Painel lateral do dia selecionado */}
               {selectedDay && (
                 <div style={{ background: 'white', borderRadius: 16, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', alignSelf: 'start' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
@@ -224,7 +227,6 @@ export default function SchedulesPage() {
                     </h3>
                     <button onClick={() => setSelectedDay(null)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#9CA3AF' }}>✕</button>
                   </div>
-
                   {selectedSchedules.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '24px 0', color: '#9CA3AF' }}>
                       <p style={{ fontSize: 24, marginBottom: 8 }}>📭</p>
@@ -254,7 +256,6 @@ export default function SchedulesPage() {
             </div>
           )}
 
-          {/* ─── VISÃO LISTA ─── */}
           {view === 'lista' && (
             sortedSchedules.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 60, color: '#9CA3AF' }}>
@@ -272,7 +273,6 @@ export default function SchedulesPage() {
         </>
       )}
 
-      {/* Modal criar/editar */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
           <div style={{ background: 'white', borderRadius: 16, padding: 28, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }} className="fade-in">
@@ -308,29 +308,33 @@ export default function SchedulesPage() {
               </div>
 
               <div style={{ marginBottom: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Equipe escalada</label>
-                  <button type="button" onClick={() => setForm(p => ({ ...p, assignments: [...p.assignments, { userId: '', function: FUNCTIONS[0] }] }))} style={{
-                    background: 'none', border: '1.5px dashed #7C3AED', color: '#7C3AED',
-                    borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit'
-                  }}>+ Adicionar</button>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 10 }}>
+                  Equipe escalada <span style={{ fontWeight: 400, color: '#9CA3AF' }}>(deixe em branco para não escalar a função)</span>
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {form.assignments.map((a, idx) => (
+                    <div key={a.function} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        width: 190, flexShrink: 0, fontSize: 12, fontWeight: 600, color: '#374151',
+                        background: '#F3F4F6', borderRadius: 8, padding: '8px 12px'
+                      }}>
+                        {a.function}
+                      </div>
+                      <select
+                        value={a.userId}
+                        onChange={e => {
+                          const as = [...form.assignments];
+                          as[idx] = { ...as[idx], userId: e.target.value };
+                          setForm(p => ({ ...p, assignments: as }));
+                        }}
+                        style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: `1.5px solid ${a.userId ? '#7C3AED' : '#E5E7EB'}`, fontSize: 13, background: 'white', fontFamily: 'inherit', color: a.userId ? '#1F2937' : '#9CA3AF' }}
+                      >
+                        <option value="">— Não escalar —</option>
+                        {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                      </select>
+                    </div>
+                  ))}
                 </div>
-                {form.assignments.map((a, idx) => (
-                  <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-                    <select value={a.userId} onChange={e => { const as = [...form.assignments]; as[idx] = { ...as[idx], userId: e.target.value }; setForm(p => ({ ...p, assignments: as })); }}
-                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid #E5E7EB', fontSize: 13, background: 'white', fontFamily: 'inherit' }}>
-                      <option value="">Selecionar voluntário</option>
-                      {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                    </select>
-                    <select value={a.function} onChange={e => { const as = [...form.assignments]; as[idx] = { ...as[idx], function: e.target.value }; setForm(p => ({ ...p, assignments: as })); }}
-                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid #E5E7EB', fontSize: 13, background: 'white', fontFamily: 'inherit' }}>
-                      {FUNCTIONS.map(f => <option key={f} value={f}>{f}</option>)}
-                    </select>
-                    <button type="button" onClick={() => setForm(p => ({ ...p, assignments: p.assignments.filter((_, i) => i !== idx) }))} style={{
-                      background: '#FEE2E2', color: '#EF4444', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', fontSize: 14
-                    }}>✕</button>
-                  </div>
-                ))}
               </div>
 
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
@@ -347,7 +351,6 @@ export default function SchedulesPage() {
   );
 }
 
-// Componente reutilizável de card de escala
 function ScheduleCard({ s, user, canManage, onEdit, onDelete, onConfirm, expanded }) {
   const myAssignment = s.assignments?.find(a => a.userId === user?.id);
   const typeColor = TYPE_COLORS[s.type] || '#7C3AED';
@@ -367,7 +370,6 @@ function ScheduleCard({ s, user, canManage, onEdit, onDelete, onConfirm, expande
             </p>
           )}
           {!expanded && s.time && <p style={{ color: '#9CA3AF', fontSize: 11, marginBottom: 6 }}>🕐 {s.time}</p>}
-
           {s.assignments?.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: myAssignment ? 8 : 0 }}>
               {s.assignments.map((a, i) => (
@@ -380,7 +382,6 @@ function ScheduleCard({ s, user, canManage, onEdit, onDelete, onConfirm, expande
               ))}
             </div>
           )}
-
           {myAssignment?.status === 'pending' && (
             <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
               <button onClick={() => onConfirm(s.id, 'confirmed')} style={{ background: '#D1FAE5', color: '#065F46', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>✅ Confirmar</button>
@@ -393,7 +394,6 @@ function ScheduleCard({ s, user, canManage, onEdit, onDelete, onConfirm, expande
             </span>
           )}
         </div>
-
         {canManage && (
           <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
             <button onClick={() => onEdit(s)} style={{ background: '#EDE9FE', color: '#7C3AED', border: 'none', borderRadius: 6, padding: '4px 8px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Editar</button>
