@@ -10,20 +10,20 @@ export default function Layout() {
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* Overlay mobile */}
+      {/* Overlay mobile — aparece quando sidebar está aberta */}
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
+          className="mobile-overlay"
           style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-            zIndex: 40, display: 'none'
+            zIndex: 40, display: 'block'
           }}
-          className="mobile-overlay"
         />
       )}
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <TopBar onMenuClick={() => setSidebarOpen(true)} />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+        <TopBar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
         <main style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
           <Outlet />
         </main>
