@@ -173,7 +173,7 @@ export default function SchedulesPage() {
       {loading ? <p style={{ color: '#9CA3AF' }}>Carregando...</p> : (
         <>
           {view === 'calendario' && (
-            <div style={{ display: 'grid', gridTemplateColumns: selectedDay ? '1fr 320px' : '1fr', gap: 16 }}>
+            <div className="cal-grid" style={{ display: 'grid', gridTemplateColumns: selectedDay ? '1fr 320px' : '1fr', gap: 16 }}>
               <div style={{ background: 'white', borderRadius: 16, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', marginBottom: 4 }}>
                   {DAYS.map(d => (
@@ -274,8 +274,8 @@ export default function SchedulesPage() {
       )}
 
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
-          <div style={{ background: 'white', borderRadius: 16, padding: 28, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }} className="fade-in">
+        <div className="modal-outer" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
+          <div className="modal-inner fade-in" style={{ background: 'white', borderRadius: 16, padding: 28, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}>
             <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 20, color: '#1E1B4B' }}>
               {editing ? 'Editar escala' : 'Nova escala'}
             </h2>
@@ -313,7 +313,7 @@ export default function SchedulesPage() {
                 </label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {form.assignments.map((a, idx) => (
-                    <div key={a.function} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div key={a.function} className="funcao-row" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{
                         width: 190, flexShrink: 0, fontSize: 12, fontWeight: 600, color: '#374151',
                         background: '#F3F4F6', borderRadius: 8, padding: '8px 12px'
