@@ -9,6 +9,7 @@ import TasksPage from './pages/TasksPage';
 import MediaPage from './pages/MediaPage';
 import UsersPage from './pages/UsersPage';
 import ProfilePage from './pages/ProfilePage';
+import MinhasEscalasPage from './pages/MinhasEscalasPage';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, loading } = useAuth();
@@ -56,6 +57,11 @@ function AppRoutes() {
         <Route path="usuarios" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <UsersPage />
+          </ProtectedRoute>
+        } />
+        <Route path="minhas-escalas" element={
+          <ProtectedRoute allowedRoles={['voluntario']}>
+            <MinhasEscalasPage />
           </ProtectedRoute>
         } />
         <Route path="perfil" element={<ProfilePage />} />
