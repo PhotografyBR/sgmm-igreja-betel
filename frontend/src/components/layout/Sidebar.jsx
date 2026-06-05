@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 const icons = {
   dashboard: '🏠',
   escalas: '📅',
+  minhasEscalas: '🗓️',
   tarefas: '✅',
   midias: '📁',
   usuarios: '👥',
@@ -22,7 +23,10 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const navItems = [
     { to: '/', label: 'Dashboard', icon: icons.dashboard, exact: true },
-    { to: '/escalas', label: 'Escalas', icon: icons.escalas },
+    ...(isVoluntario
+      ? [{ to: '/minhas-escalas', label: 'Minhas Escalas', icon: icons.minhasEscalas }]
+      : [{ to: '/escalas', label: 'Escalas', icon: icons.escalas }]
+    ),
     { to: '/tarefas', label: 'Tarefas', icon: icons.tarefas },
     ...(!isVoluntario ? [{ to: '/midias', label: 'Repositório', icon: icons.midias }] : []),
     ...(isAdmin ? [{ to: '/usuarios', label: 'Usuários', icon: icons.usuarios }] : []),
@@ -45,10 +49,7 @@ export default function Sidebar({ isOpen, onClose }) {
       transition: 'transform 0.3s ease'
     }}>
       {/* Logo */}
-      <div style={{
-        padding: '24px 20px',
-        borderBottom: '1px solid rgba(255,255,255,0.1)'
-      }}>
+      <div style={{ padding: '24px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 40, height: 40, borderRadius: 10,
