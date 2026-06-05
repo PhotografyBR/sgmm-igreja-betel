@@ -48,15 +48,7 @@ if (process.env.DATABASE_URL) {
     }
   }
 
-  // Executa init assim que o módulo é carregado
-  initDB().catch(err => {
-    console.error('Erro ao inicializar Postgres:', err.message);
-    process.exit(1);
-  });
-
   function readDB() {
-    // Versão síncrona simulada via cache em memória
-    // O cache é atualizado a cada writeDB
     return global.__dbCache || defaultDB;
   }
 
@@ -83,8 +75,14 @@ if (process.env.DATABASE_URL) {
     ).catch(err => console.error('Erro ao salvar no Postgres:', err.message));
   }
 
-  // Carrega o cache logo na inicialização
-  readDBAsync().catch(() => {});
+  // Init: cria tabela, popula se necessário, depois carrega cache
+  initDB()
+    .then(() => readDBAsync())
+    .then(() => console.log('Cache Postgres carregado.'))
+    .catch(err => {
+      console.error('Erro ao inicializar Postgres:', err.message);
+      process.exit(1);
+    });
 
   module.exports = { readDB, writeDB, readDBAsync, writeDBAsync, pool };
 
