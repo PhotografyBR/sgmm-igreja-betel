@@ -59,7 +59,7 @@ router.post('/', authMiddleware, requireRole('admin', 'secretaria'), (req, res) 
       userId: a.userId,
       function: a.function,
       status: 'pending',
-      confirmToken: uuidv4() // token único para confirmação por link
+      confirmToken: uuidv4()
     })),
     createdBy: req.user.id,
     createdAt: new Date().toISOString(),
@@ -68,7 +68,6 @@ router.post('/', authMiddleware, requireRole('admin', 'secretaria'), (req, res) 
 
   db.schedules.push(newSchedule);
 
-  // Criar notificações internas e enviar WhatsApp para os escalados
   newSchedule.assignments.forEach(a => {
     db.notifications.push({
       id: uuidv4(),
@@ -81,7 +80,6 @@ router.post('/', authMiddleware, requireRole('admin', 'secretaria'), (req, res) 
       createdAt: new Date().toISOString()
     });
 
-    // Envia WhatsApp (assíncrono, sem bloquear a resposta)
     const voluntario = db.users.find(u => u.id === a.userId);
     if (voluntario?.phone) {
       const urlSistema = process.env.FRONTEND_URL || 'https://sgmm-igreja-betel-production.up.railway.app';
@@ -141,7 +139,7 @@ router.delete('/:id', authMiddleware, requireRole('admin'), (req, res) => {
 
 // POST /api/schedules/:id/confirm - voluntário confirma/declina presença
 router.post('/:id/confirm', authMiddleware, (req, res) => {
-  const { status } = req.body; // confirmed ou declined
+  const { status } = req.body;
   if (!['confirmed', 'declined'].includes(status)) {
     return res.status(400).json({ error: 'Status inválido. Use confirmed ou declined' });
   }
@@ -156,7 +154,6 @@ router.post('/:id/confirm', authMiddleware, (req, res) => {
   db.schedules[schedIdx].assignments[assignIdx].status = status;
   db.schedules[schedIdx].updatedAt = new Date().toISOString();
 
-  // Notificar o líder (notificação interna + WhatsApp)
   const schedule = db.schedules[schedIdx];
   const confirmText = status === 'confirmed' ? 'confirmou' : 'recusou';
   db.notifications.push({
@@ -170,7 +167,6 @@ router.post('/:id/confirm', authMiddleware, (req, res) => {
     createdAt: new Date().toISOString()
   });
 
-  // Envia WhatsApp para o líder que criou a escala
   const lider = db.users.find(u => u.id === schedule.createdBy);
   if (lider?.phone) {
     notificarLider({
@@ -185,4 +181,71 @@ router.post('/:id/confirm', authMiddleware, (req, res) => {
   res.json({ message: `Presença ${status === 'confirmed' ? 'confirmada' : 'recusada'} com sucesso` });
 });
 
-//
+// GET /api/schedules/confirmar/:token - página pública de confirmação (sem login)
+router.get('/confirmar/:token', (req, res) => {
+  const db = readDB();
+  const schedule = db.schedules.find(s =>
+    s.assignments?.some(a => a.confirmToken === req.params.token)
+  );
+
+  if (!schedule) {
+    return res.status(404).send(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Link inválido</title><style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f3f4f6;}.card{background:white;border-radius:16px;padding:32px;text-align:center;max-width:400px;box-shadow:0 4px 20px rgba(0,0,0,0.1);}h2{color:#ef4444;}p{color:#6b7280;}</style></head><body><div class="card"><h2>Link inválido</h2><p>Este link de confirmação não existe ou já expirou.</p></div></body></html>`);
+  }
+
+  const assignment = schedule.assignments.find(a => a.confirmToken === req.params.token);
+  const volunteer = db.users.find(u => u.id === assignment.userId);
+  const dataFormatada = new Date(schedule.date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+  const statusAtual = assignment.status;
+  const jaRespondeu = statusAtual !== 'pending';
+
+  res.send(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Confirmar Presença - Ministério de Mídias</title><style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(135deg,#4c1d95,#7c3aed);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}.card{background:white;border-radius:20px;padding:32px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);}.logo{text-align:center;margin-bottom:20px;}.logo-icon{font-size:40px;}.logo-text{font-size:16px;font-weight:700;color:#7c3aed;margin-top:4px;}h1{font-size:20px;font-weight:700;color:#1e1b4b;margin-bottom:6px;text-align:center;}.subtitle{font-size:13px;color:#9ca3af;text-align:center;margin-bottom:24px;}.info-box{background:#f9fafb;border-radius:12px;padding:16px;margin-bottom:24px;}.info-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;}.info-row:last-child{margin-bottom:0;}.info-icon{font-size:18px;flex-shrink:0;}.info-label{font-size:11px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}.info-value{font-size:14px;color:#1f2937;font-weight:600;margin-top:1px;}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;}.btn{padding:14px;border-radius:12px;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:.2s;}.btn-confirm{background:#10b981;color:white;}.btn-decline{background:#ef4444;color:white;}.btn:disabled{opacity:.5;cursor:not-allowed;}.status-badge{text-align:center;padding:12px;border-radius:12px;font-weight:700;font-size:15px;margin-top:8px;}.status-confirmed{background:#d1fae5;color:#059669;}.status-declined{background:#fee2e2;color:#ef4444;}.footer{text-align:center;margin-top:20px;font-size:11px;color:#d1d5db;}</style></head><body><div class="card"><div class="logo"><div class="logo-icon">🎬</div><div class="logo-text">Ministério de Mídias — Igreja Betel</div></div><h1>Confirmação de Presença</h1><p class="subtitle">Olá, <strong>${volunteer?.name || 'Voluntário'}</strong>! Você foi escalado(a) para:</p><div class="info-box"><div class="info-row"><span class="info-icon">📅</span><div><div class="info-label">Evento</div><div class="info-value">${schedule.title}</div></div></div><div class="info-row"><span class="info-icon">🗓</span><div><div class="info-label">Data</div><div class="info-value">${dataFormatada}${schedule.time ? ' às ' + schedule.time : ''}</div></div></div>${assignment.function ? '<div class="info-row"><span class="info-icon">📌</span><div><div class="info-label">Função</div><div class="info-value">' + assignment.function + '</div></div></div>' : ''}</div>${jaRespondeu ? '<div class="status-badge ' + (statusAtual === 'confirmed' ? 'status-confirmed' : 'status-declined') + '">' + (statusAtual === 'confirmed' ? '✅ Presença confirmada!' : '❌ Presença recusada') + '</div><p style="text-align:center;color:#9ca3af;font-size:12px;margin-top:12px;">Você já respondeu esta escala.</p>' : '<div class="buttons"><button class="btn btn-confirm" onclick="responder(\'confirmed\')">✅ Confirmar</button><button class="btn btn-decline" onclick="responder(\'declined\')">❌ Recusar</button></div>'}<div class="footer">Sistema de Gestão do Ministério de Mídias</div></div><script>async function responder(status){document.querySelectorAll('.btn').forEach(b=>b.disabled=true);try{const res=await fetch('/api/schedules/confirmar/${req.params.token}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});const data=await res.json();if(res.ok){const box=document.querySelector('.buttons');box.outerHTML='<div class="status-badge '+(status==='confirmed'?'status-confirmed':'status-declined')+'">'+(status==='confirmed'?'✅ Presença confirmada!':'❌ Presença recusada')+'</div>';}else{alert(data.error||'Erro ao confirmar.');document.querySelectorAll('.btn').forEach(b=>b.disabled=false);}}catch(e){alert('Erro de conexão.');document.querySelectorAll('.btn').forEach(b=>b.disabled=false);}}</script></body></html>`);
+});
+
+// POST /api/schedules/confirmar/:token - processa a confirmação pública
+router.post('/confirmar/:token', (req, res) => {
+  const { status } = req.body;
+  if (!['confirmed', 'declined'].includes(status)) {
+    return res.status(400).json({ error: 'Status inválido' });
+  }
+
+  const db = readDB();
+  const schedIdx = db.schedules.findIndex(s =>
+    s.assignments?.some(a => a.confirmToken === req.params.token)
+  );
+  if (schedIdx === -1) return res.status(404).json({ error: 'Link inválido ou expirado' });
+
+  const assignIdx = db.schedules[schedIdx].assignments.findIndex(a => a.confirmToken === req.params.token);
+  db.schedules[schedIdx].assignments[assignIdx].status = status;
+  db.schedules[schedIdx].updatedAt = new Date().toISOString();
+
+  const schedule = db.schedules[schedIdx];
+  const assignment = schedule.assignments[assignIdx];
+  const voluntario = db.users.find(u => u.id === assignment.userId);
+  const confirmText = status === 'confirmed' ? 'confirmou' : 'recusou';
+
+  db.notifications.push({
+    id: uuidv4(),
+    userId: schedule.createdBy,
+    type: 'confirmation',
+    title: 'Confirmação de Escala',
+    message: `${voluntario?.name || 'Voluntário'} ${confirmText} presença em "${schedule.title}" (via link)`,
+    relatedId: schedule.id,
+    read: false,
+    createdAt: new Date().toISOString()
+  });
+
+  const lider = db.users.find(u => u.id === schedule.createdBy);
+  if (lider?.phone) {
+    notificarLider({
+      phoneL: lider.phone,
+      nomeVoluntario: voluntario?.name || 'Voluntário',
+      tituloEscala: schedule.title,
+      status
+    }).catch(() => {});
+  }
+
+  writeDB(db);
+  res.json({ message: `Presença ${status === 'confirmed' ? 'confirmada' : 'recusada'} com sucesso` });
+});
+
+module.exports = router;
