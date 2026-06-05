@@ -26,6 +26,8 @@ export default function SchedulesPage() {
   const [view, setView] = useState('calendario');
   const [selectedDay, setSelectedDay] = useState(null);
   const [form, setForm] = useState({ title: '', date: '', time: '', type: 'culto', notes: '', assignments: [] });
+  const [showWhatsApp, setShowWhatsApp] = useState(false);
+  const [escalaCriada, setEscalaCriada] = useState(null);
 
   useEffect(() => { loadData(); }, [currentMonth]);
 
@@ -69,10 +71,21 @@ export default function SchedulesPage() {
     e.preventDefault();
     const payload = { ...form, assignments: form.assignments.filter(a => a.userId !== '') };
     try {
-      if (editing) { await api.put(`/schedules/${editing.id}`, payload); toast.success('Escala atualizada!'); }
-      else { await api.post('/schedules', payload); toast.success('Escala criada!'); }
-      setShowModal(false);
-      loadData();
+      if (editing) {
+        await api.put(`/schedules/${editing.id}`, payload);
+        toast.success('Escala atualizada!');
+        setShowModal(false);
+        loadData();
+      } else {
+        const res = await api.post('/schedules', payload);
+        toast.success('Escala criada!');
+        setShowModal(false);
+        loadData();
+        if (payload.assignments.length > 0) {
+          setEscalaCriada(res.data);
+          setShowWhatsApp(true);
+        }
+      }
     } catch (err) { toast.error(err.response?.data?.error || 'Erro ao salvar escala'); }
   }
 
@@ -347,6 +360,79 @@ export default function SchedulesPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Modal WhatsApp
+function ModalWhatsApp({ escala, users, onClose }) {
+  const FRONTEND_URL = 'https://sgmm-igreja-betel-production.up.railway.app';
+  const dataFormatada = new Date(escala.date + 'T12:00:00').toLocaleDateString('pt-BR', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  });
+
+  function gerarMensagem(nome, funcao, token) {
+    const link = FRONTEND_URL + '/api/schedules/confirmar/' + token;
+    return 'Ola, ' + nome + '! Voce foi escalado(a) para:\n\n*' + escala.title + '*\n' + dataFormatada + (escala.time ? ' as ' + escala.time : '') + '\nFuncao: *' + funcao + '*\n\nConfirme sua presenca:\n' + link;
+  }
+
+  function abrirWA(phone, msg) {
+    const num = phone.replace(/\D/g, '');
+    window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
+  }
+
+  const escalados = escala.assignments.map(a => ({
+    ...a,
+    nome: (users.find(u => u.id === a.userId) || {}).name || 'Voluntario',
+    phone: (users.find(u => u.id === a.userId) || {}).phone || ''
+  }));
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 20 }}>
+      <div className="fade-in" style={{ background: 'white', borderRadius: 16, padding: 28, width: '100%', maxWidth: 500, maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 28 }}>📲</span>
+            <div>
+              <h2 style={{ fontSize: 17, fontWeight: 700, color: '#1E1B4B' }}>Avisar pelo WhatsApp</h2>
+              <p style={{ fontSize: 12, color: '#6B7280' }}>{escala.title} · {dataFormatada}</p>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#9CA3AF' }}>✕</button>
+        </div>
+        <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 20, padding: '10px 12px', background: '#F9FAFB', borderRadius: 8 }}>
+          Clique em cada voluntario para abrir o WhatsApp com a mensagem e link de confirmacao prontos.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {escalados.map((a, i) => {
+            const temPhone = !!a.phone;
+            return (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F9FAFB', borderRadius: 12, padding: '12px 14px', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: 'hsl(' + ((a.userId || '').charCodeAt(0) * 37 % 360) + ',55%,65%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'white' }}>
+                    {a.nome.charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>{a.nome}</div>
+                    <div style={{ fontSize: 11, color: '#6B7280' }}>{a.function}</div>
+                    {!temPhone && <div style={{ fontSize: 11, color: '#EF4444' }}>Sem telefone cadastrado</div>}
+                  </div>
+                </div>
+                <button
+                  onClick={() => temPhone && abrirWA(a.phone, gerarMensagem(a.nome, a.function, a.confirmToken))}
+                  disabled={!temPhone}
+                  style={{ background: temPhone ? '#25D366' : '#D1D5DB', color: 'white', border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: temPhone ? 'pointer' : 'not-allowed', fontFamily: 'inherit', flexShrink: 0 }}
+                >
+                  💬 Enviar
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <button onClick={onClose} style={{ width: '100%', marginTop: 20, padding: '10px', borderRadius: 10, border: '1.5px solid #E5E7EB', background: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', color: '#374151' }}>
+          Fechar
+        </button>
+      </div>
     </div>
   );
 }
