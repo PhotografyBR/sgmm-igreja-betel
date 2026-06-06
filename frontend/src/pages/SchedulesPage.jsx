@@ -10,8 +10,7 @@ const FUNCTIONS = [
   'Transmissão (Live)',
   'Designer/Editor'
 ];
-const TYPE_COLORS = { culto: '#7C3AED', reunião: '#2563EB', evento: '#F59E0B' };
-const STATUS_COLORS = { pending: '#F59E0B', confirmed: '#10B981', declined: '#EF4444' };
+const TYPE_COLORS = { culto: '#7C3AED', 'reunião': '#2563EB', evento: '#F59E0B' };
 const STATUS_LABELS = { pending: 'Pendente', confirmed: 'Confirmado', declined: 'Recusado' };
 const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -315,29 +314,18 @@ export default function SchedulesPage() {
                   <input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Opcional" style={inputStyle} />
                 </div>
               </div>
-
               <div style={{ marginBottom: 20 }}>
                 <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 10 }}>
                   Equipe escalada <span style={{ fontWeight: 400, color: '#9CA3AF' }}>(deixe em branco para não escalar a função)</span>
                 </label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {form.assignments.map((a, idx) => (
-                    <div key={a.function} className="funcao-row" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div className="funcao-label" style={{
-                        width: 180, flexShrink: 0, fontSize: 13, fontWeight: 600, color: '#374151',
-                        background: '#F3F4F6', borderRadius: 8, padding: '8px 12px'
-                      }}>
+                    <div key={a.function} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 180, flexShrink: 0, fontSize: 13, fontWeight: 600, color: '#374151', background: '#F3F4F6', borderRadius: 8, padding: '8px 12px' }}>
                         {a.function}
                       </div>
-                      <select
-                        value={a.userId}
-                        onChange={e => {
-                          const as = [...form.assignments];
-                          as[idx] = { ...as[idx], userId: e.target.value };
-                          setForm(p => ({ ...p, assignments: as }));
-                        }}
-                        style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: `1.5px solid ${a.userId ? '#7C3AED' : '#E5E7EB'}`, fontSize: 13, background: 'white', fontFamily: 'inherit', color: a.userId ? '#1F2937' : '#9CA3AF' }}
-                      >
+                      <select value={a.userId} onChange={e => { const as = [...form.assignments]; as[idx] = { ...as[idx], userId: e.target.value }; setForm(p => ({ ...p, assignments: as })); }}
+                        style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: `1.5px solid ${a.userId ? '#7C3AED' : '#E5E7EB'}`, fontSize: 13, background: 'white', fontFamily: 'inherit', color: a.userId ? '#1F2937' : '#9CA3AF' }}>
                         <option value="">— Não escalar —</option>
                         {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                       </select>
@@ -345,7 +333,6 @@ export default function SchedulesPage() {
                   ))}
                 </div>
               </div>
-
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                 <button type="button" onClick={() => setShowModal(false)} style={{ padding: '9px 20px', borderRadius: 8, border: '1.5px solid #E5E7EB', background: 'white', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
                 <button type="submit" style={{ padding: '9px 24px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #7C3AED, #6D28D9)', color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -356,23 +343,17 @@ export default function SchedulesPage() {
           </div>
         </div>
       )}
+
+      {showWhatsApp && escalaCriada && (
+        <ModalWhatsApp escala={escalaCriada} users={users} onClose={() => { setShowWhatsApp(false); setEscalaCriada(null); }} />
+      )}
     </div>
   );
 }
 
-      {showWhatsApp && escalaCriada && (
-        <ModalWhatsApp
-          escala={escalaCriada}
-          users={users}
-          onClose={() => { setShowWhatsApp(false); setEscalaCriada(null); }}
-        />
-      )}
-// Modal WhatsApp
 function ModalWhatsApp({ escala, users, onClose }) {
   const FRONTEND_URL = 'https://sgmm-igreja-betel-production.up.railway.app';
-  const dataFormatada = new Date(escala.date + 'T12:00:00').toLocaleDateString('pt-BR', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-  });
+  const dataFormatada = new Date(escala.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   function gerarMensagem(nome, funcao, token) {
     const link = FRONTEND_URL + '/api/schedules/confirmar/' + token;
@@ -404,7 +385,7 @@ function ModalWhatsApp({ escala, users, onClose }) {
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#9CA3AF' }}>✕</button>
         </div>
         <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 20, padding: '10px 12px', background: '#F9FAFB', borderRadius: 8 }}>
-          Clique em cada voluntario para abrir o WhatsApp com a mensagem e link de confirmacao prontos.
+          Clique em cada voluntario para abrir o WhatsApp com a mensagem pronta.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {escalados.map((a, i) => {
@@ -421,11 +402,8 @@ function ModalWhatsApp({ escala, users, onClose }) {
                     {!temPhone && <div style={{ fontSize: 11, color: '#EF4444' }}>Sem telefone cadastrado</div>}
                   </div>
                 </div>
-                <button
-                  onClick={() => temPhone && abrirWA(a.phone, gerarMensagem(a.nome, a.function, a.confirmToken))}
-                  disabled={!temPhone}
-                  style={{ background: temPhone ? '#25D366' : '#D1D5DB', color: 'white', border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: temPhone ? 'pointer' : 'not-allowed', fontFamily: 'inherit', flexShrink: 0 }}
-                >
+                <button onClick={() => temPhone && abrirWA(a.phone, gerarMensagem(a.nome, a.function, a.confirmToken))} disabled={!temPhone}
+                  style={{ background: temPhone ? '#25D366' : '#D1D5DB', color: 'white', border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: temPhone ? 'pointer' : 'not-allowed', fontFamily: 'inherit', flexShrink: 0 }}>
                   💬 Enviar
                 </button>
               </div>
@@ -443,12 +421,7 @@ function ModalWhatsApp({ escala, users, onClose }) {
 function ScheduleCard({ s, user, users = [], canManage, onEdit, onDelete, onConfirm, onAvisar, expanded }) {
   const myAssignment = s.assignments?.find(a => a.userId === user?.id);
   const typeColor = TYPE_COLORS[s.type] || '#7C3AED';
-
-  const assignmentsComNome = s.assignments?.map(a => ({
-    ...a,
-    nome: users.find(u => u.id === a.userId)?.name || 'Voluntário'
-  })) || [];
-
+  const assignmentsComNome = s.assignments?.map(a => ({ ...a, nome: users.find(u => u.id === a.userId)?.name || 'Voluntário' })) || [];
   const statusIcon = { confirmed: '✅', declined: '❌', pending: '⏳' };
   const statusBg = { confirmed: '#D1FAE5', declined: '#FEE2E2', pending: '#FEF3C7' };
   const statusFg = { confirmed: '#065F46', declined: '#991B1B', pending: '#92400E' };
@@ -462,11 +435,7 @@ function ScheduleCard({ s, user, users = [], canManage, onEdit, onDelete, onConf
             <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 10, background: typeColor + '20', color: typeColor, fontWeight: 600 }}>{s.type}</span>
           </div>
           {s.time && <p style={{ color: '#9CA3AF', fontSize: 12 }}>🕐 {s.time}</p>}
-          {expanded && (
-            <p style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>
-              📅 {new Date(s.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </p>
-          )}
+          {expanded && <p style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>📅 {new Date(s.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>}
         </div>
         {canManage && (
           <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
@@ -475,22 +444,14 @@ function ScheduleCard({ s, user, users = [], canManage, onEdit, onDelete, onConf
           </div>
         )}
       </div>
-
       {assignmentsComNome.length > 0 && (
         <div style={{ borderTop: '1px solid #F3F4F6', paddingTop: 10 }}>
-          <p style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
-            Equipe ({assignmentsComNome.length})
-          </p>
+          <p style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Equipe ({assignmentsComNome.length})</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             {assignmentsComNome.map((a, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                  <div style={{
-                    width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                    background: `hsl(${(a.userId?.charCodeAt(0) || 0) * 37 % 360}, 55%, 65%)`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 11, fontWeight: 700, color: 'white'
-                  }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: `hsl(${(a.userId?.charCodeAt(0) || 0) * 37 % 360}, 55%, 65%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white' }}>
                     {a.nome.charAt(0).toUpperCase()}
                   </div>
                   <div style={{ minWidth: 0 }}>
@@ -498,10 +459,7 @@ function ScheduleCard({ s, user, users = [], canManage, onEdit, onDelete, onConf
                     <div style={{ fontSize: 11, color: '#6B7280' }}>{a.function}</div>
                   </div>
                 </div>
-                <span style={{
-                  fontSize: 11, padding: '3px 8px', borderRadius: 20, fontWeight: 600, flexShrink: 0,
-                  background: statusBg[a.status], color: statusFg[a.status]
-                }}>
+                <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 20, fontWeight: 600, flexShrink: 0, background: statusBg[a.status], color: statusFg[a.status] }}>
                   {statusIcon[a.status]} {STATUS_LABELS[a.status]}
                 </span>
               </div>
@@ -509,11 +467,12 @@ function ScheduleCard({ s, user, users = [], canManage, onEdit, onDelete, onConf
           </div>
         </div>
       )}
-
-      {assignmentsComNome.length === 0 && (
-        <p style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', marginTop: 4 }}>Nenhum voluntário escalado</p>
+      {assignmentsComNome.length === 0 && <p style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', marginTop: 4 }}>Nenhum voluntário escalado</p>}
+      {canManage && onAvisar && assignmentsComNome.length > 0 && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #F3F4F6' }}>
+          <button onClick={() => onAvisar(s)} style={{ background: '#ECFDF5', color: '#059669', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>📲 Avisar pelo WhatsApp</button>
+        </div>
       )}
-
       {myAssignment?.status === 'pending' && (
         <div style={{ display: 'flex', gap: 8, marginTop: 12, paddingTop: 10, borderTop: '1px solid #F3F4F6' }}>
           <button onClick={() => onConfirm(s.id, 'confirmed')} style={{ flex: 1, background: '#10B981', color: 'white', border: 'none', borderRadius: 8, padding: '8px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>✅ Confirmar</button>
@@ -522,10 +481,7 @@ function ScheduleCard({ s, user, users = [], canManage, onEdit, onDelete, onConf
       )}
       {myAssignment && myAssignment.status !== 'pending' && (
         <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #F3F4F6' }}>
-          <span style={{
-            fontSize: 12, padding: '4px 10px', borderRadius: 20,
-            background: statusBg[myAssignment.status], color: statusFg[myAssignment.status], fontWeight: 600
-          }}>
+          <span style={{ fontSize: 12, padding: '4px 10px', borderRadius: 20, background: statusBg[myAssignment.status], color: statusFg[myAssignment.status], fontWeight: 600 }}>
             {statusIcon[myAssignment.status]} {myAssignment.status === 'confirmed' ? 'Você confirmou presença' : 'Você recusou'}
           </span>
         </div>
