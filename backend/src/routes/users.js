@@ -24,6 +24,16 @@ router.get('/voluntarios', authMiddleware, requireRole('admin', 'secretaria'), (
   res.json(lista);
 });
 
+// Endpoint público (autenticado) — retorna apenas nome e id para montar equipe
+router.get('/equipe', authMiddleware, (req, res) => {
+  const db = readDB();
+  const lista = db.users
+    .filter(u => ['voluntario', 'admin', 'pastoral', 'secretaria'].includes(u.role))
+    .map(u => ({ id: u.id, name: u.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  res.json(lista);
+});
+
 router.post('/', authMiddleware, requireRole('admin'), async (req, res) => {
   const { name, email, password, role, phone } = req.body;
   if (!name || !email || !password || !role)
