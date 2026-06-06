@@ -1,5 +1,7 @@
 import { NavLink } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import api from '../../services/api';
 
 const icons = {
   dashboard: '🏠',
@@ -21,11 +23,30 @@ const roleLabels = {
 
 export default function Sidebar({ isOpen, onClose }) {
   const { user, isAdmin, isVoluntario } = useAuth();
+  const [pendentes, setPendentes] = useState(0);
+
+  useEffect(() => {
+    if (!isVoluntario || !user) return;
+    const hoje = new Date();
+    Promise.all([0, 1, 2].map(offset => {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() + offset, 1);
+      return api.get('/schedules', { params: { month: d.getMonth() + 1, year: d.getFullYear() } });
+    })).then(results => {
+      const all = results.flatMap(r => r.data);
+      const minhas = all.filter(s => s.assignments?.some(a => a.userId === user.id));
+      const p = minhas.filter(s => {
+        const a = s.assignments?.find(x => x.userId === user.id);
+        const futuro = new Date(s.date + 'T00:00:00') >= hoje;
+        return a?.status === 'pending' && futuro;
+      });
+      setPendentes(p.length);
+    }).catch(() => {});
+  }, [user, isVoluntario]);
 
   const navItems = [
     { to: '/', label: 'Dashboard', icon: icons.dashboard, exact: true },
     ...(isVoluntario
-      ? [{ to: '/minhas-escalas', label: 'Minhas Escalas', icon: icons.minhasEscalas }]
+      ? [{ to: '/minhas-escalas', label: 'Minhas Escalas', icon: icons.minhasEscalas, badge: pendentes }]
       : [{ to: '/escalas', label: 'Escalas', icon: icons.escalas }]
     ),
     { to: '/tarefas', label: 'Tarefas', icon: icons.tarefas },
@@ -46,11 +67,7 @@ export default function Sidebar({ isOpen, onClose }) {
       }}>
       <div style={{ padding: '24px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: 10,
-            background: 'linear-gradient(135deg, #7C3AED, #A78BFA)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20
-          }}>🎬</div>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #7C3AED, #A78BFA)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎬</div>
           <div>
             <div style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>Ministério</div>
             <div style={{ fontSize: 12, color: '#A5B4FC' }}>de Mídias</div>
@@ -60,12 +77,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
       <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 12px' }}>
-          <div style={{
-            width: 34, height: 34, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #7C3AED, #EC4899)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 14, fontWeight: 700, flexShrink: 0
-          }}>
+          <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg, #7C3AED, #EC4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
             {user?.name?.charAt(0).toUpperCase()}
           </div>
           <div style={{ minWidth: 0 }}>
@@ -88,11 +100,19 @@ export default function Sidebar({ isOpen, onClose }) {
               color: isActive ? 'white' : 'rgba(255,255,255,0.65)',
               background: isActive ? 'rgba(124,58,237,0.5)' : 'transparent',
               fontSize: 14, fontWeight: isActive ? 600 : 400,
-              transition: 'all 0.15s', textDecoration: 'none'
+              transition: 'all 0.15s', textDecoration: 'none',
+              justifyContent: 'space-between'
             })}
           >
-            <span style={{ fontSize: 20 }}>{item.icon}</span>
-            {item.label}
+            <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 20 }}>{item.icon}</span>
+              {item.label}
+            </span>
+            {item.badge > 0 && (
+              <span style={{ background: '#EF4444', color: 'white', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                {item.badge}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>
@@ -105,5 +125,3 @@ export default function Sidebar({ isOpen, onClose }) {
     </aside>
   );
 }
-
-// v2
