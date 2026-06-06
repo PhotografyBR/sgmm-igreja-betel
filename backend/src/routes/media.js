@@ -13,43 +13,40 @@ const upload = multer({
   fileFilter: (req, file, cb) => {
     const allowed = /jpeg|jpg|png|gif|mp4|mov|avi|mkv|webm|raw|cr2|arw|pdf|doc|docx/i;
     if (allowed.test(file.originalname)) cb(null, true);
-    else cb(new Error('Formato não suportado'));
+    else cb(new Error('Formato nao suportado'));
   }
 });
 
-// GET /api/media - listar arquivos
+const FULL_ACCESS_ROLES = ['admin', 'pastoral', 'editor'];
+
 router.get('/', authMiddleware, (req, res) => {
   const db = readDB();
   let media = db.media || [];
 
-  // Voluntário só vê arquivos de escalas em que esteve escalado
-  if (req.user.role === 'voluntario') {
-    const escalasDoVoluntario = (db.schedules || [])
+  // Voluntario e secretaria so veem arquivos de escalas em que estiveram
+  if (!FULL_ACCESS_ROLES.includes(req.user.role)) {
+    const escalasDoUsuario = (db.schedules || [])
       .filter(s => s.assignments?.some(a => a.userId === req.user.id))
       .map(s => s.id);
-    media = media.filter(m => !m.scheduleId || escalasDoVoluntario.includes(m.scheduleId));
+    media = media.filter(m => !m.scheduleId || escalasDoUsuario.includes(m.scheduleId));
   }
 
   const { scheduleId } = req.query;
   if (scheduleId) media = media.filter(m => m.scheduleId === scheduleId);
-
   res.json(media);
 });
 
-// POST /api/media/upload
 router.post('/upload', authMiddleware, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
 
   const { scheduleId, description } = req.body;
   const db = readDB();
 
-  // Voluntário só pode fazer upload em escalas que participou
-  if (req.user.role === 'voluntario' && scheduleId) {
+  // Voluntario/secretaria so podem fazer upload em escalas que participaram
+  if (!FULL_ACCESS_ROLES.includes(req.user.role) && scheduleId) {
     const schedule = db.schedules?.find(s => s.id === scheduleId);
     const estaEscalado = schedule?.assignments?.some(a => a.userId === req.user.id);
-    if (!estaEscalado) {
-      return res.status(403).json({ error: 'Você não estava escalado neste evento' });
-    }
+    if (!estaEscalado) return res.status(403).json({ error: 'Voce nao estava escalado neste evento' });
   }
 
   let folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
@@ -59,54 +56,40 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
     const schedule = db.schedules?.find(s => s.id === scheduleId);
     if (schedule) {
       const data = new Date(schedule.date + 'T12:00:00').toLocaleDateString('pt-BR');
-      folderName = `${data} - ${schedule.title}`;
-      try {
-        folderId = await driveService.getOrCreateFolder(folderName, folderId);
-      } catch (e) {
-        console.error('Erro ao criar pasta:', e.message);
-      }
+      folderName = data + ' - ' + schedule.title;
+      try { folderId = await driveService.getOrCreateFolder(folderName, folderId); }
+      catch (e) { console.error('Erro ao criar pasta:', e.message); }
     }
   }
 
   try {
     const driveFile = await driveService.uploadFile(req.file, folderId);
-
     const isImage = /jpeg|jpg|png|gif|raw|cr2|arw/i.test(req.file.originalname);
     const isVideo = /mp4|mov|avi|mkv|webm/i.test(req.file.originalname);
 
     const mediaRecord = {
-      id: uuidv4(),
-      name: req.file.originalname,
-      driveFileId: driveFile.id,
-      driveUrl: driveFile.webViewLink,
+      id: uuidv4(), name: req.file.originalname,
+      driveFileId: driveFile.id, driveUrl: driveFile.webViewLink,
       thumbnailUrl: driveFile.thumbnailLink || null,
       mimeType: req.file.mimetype,
       type: isImage ? 'foto' : isVideo ? 'video' : 'documento',
-      size: req.file.size,
-      scheduleId: scheduleId || null,
-      folderName,
-      description: description || '',
-      uploadedBy: req.user.id,
-      uploaderName: req.user.name,
+      size: req.file.size, scheduleId: scheduleId || null,
+      folderName, description: description || '',
+      uploadedBy: req.user.id, uploaderName: req.user.name,
       createdAt: new Date().toISOString()
     };
 
     if (!db.media) db.media = [];
     db.media.push(mediaRecord);
 
-    // Notificar admins
-    const admins = (db.users || []).filter(u => u.role === 'admin' || u.role === 'pastoral');
+    const admins = (db.users || []).filter(u => ['admin', 'pastoral'].includes(u.role));
     admins.forEach(admin => {
       if (!db.notifications) db.notifications = [];
       db.notifications.push({
-        id: uuidv4(),
-        userId: admin.id,
-        type: 'media_upload',
+        id: uuidv4(), userId: admin.id, type: 'media_upload',
         title: 'Novo arquivo enviado',
-        message: `${req.user.name} enviou "${req.file.originalname}" para ${folderName}`,
-        relatedId: mediaRecord.id,
-        read: false,
-        createdAt: new Date().toISOString()
+        message: req.user.name + ' enviou "' + req.file.originalname + '" para ' + folderName,
+        relatedId: mediaRecord.id, read: false, createdAt: new Date().toISOString()
       });
     });
 
@@ -118,19 +101,13 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
   }
 });
 
-// DELETE /api/media/:id
-router.delete('/:id', authMiddleware, requireRole('admin', 'pastoral'), async (req, res) => {
+router.delete('/:id', authMiddleware, requireRole('admin', 'pastoral', 'editor'), async (req, res) => {
   const db = readDB();
   if (!db.media) db.media = [];
   const idx = db.media.findIndex(m => m.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Arquivo não encontrado' });
-
-  try {
-    await driveService.deleteFile(db.media[idx].driveFileId);
-  } catch (e) {
-    console.error('Erro ao remover do Drive:', e.message);
-  }
-
+  if (idx === -1) return res.status(404).json({ error: 'Arquivo nao encontrado' });
+  try { await driveService.deleteFile(db.media[idx].driveFileId); }
+  catch (e) { console.error('Erro ao remover do Drive:', e.message); }
   db.media.splice(idx, 1);
   writeDB(db);
   res.json({ message: 'Arquivo removido' });
