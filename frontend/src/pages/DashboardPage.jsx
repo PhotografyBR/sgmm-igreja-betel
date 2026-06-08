@@ -201,7 +201,7 @@ function DashboardEditor({ user }) {
           <p style={{ color: '#9CA3AF', fontSize: 14 }}>Carregando...</p>
         ) : media.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '24px 0', color: '#9CA3AF' }}>
-            <div style={{ fontSize: 36, marginBottom: 8 }}>🂂<+�iv>
+            <div style={{ fontSize: 36, marginBottom: 8 }}>📁</div>
             <p style={{ fontSize: 14 }}>Nenhum arquivo no repositório ainda</p>
             <button onClick={() => navigate('/midias')} style={{
               marginTop: 10, padding: '8px 16px', borderRadius: 8, border: 'none',
@@ -241,7 +241,7 @@ function DashboardEditor({ user }) {
   );
 }
 
-// ──�  Dashboard Admin/Pastoral/Secretaria ───────────────────────────────────────────
+// ===== Dashboard Admin/Pastoral/Secretaria =====
 
 function DashboardAdmin({ user }) {
   const navigate = useNavigate();
@@ -426,7 +426,7 @@ function StatCard({ icon, label, value, color, onClick }) {
   );
 }
 
-// ──�  Roteador principal ─────────────────────────────────────────────────────
+// ===== Roteador principal =====
 
 export default function DashboardPage() {
   const { user, isVoluntario } = useAuth();
