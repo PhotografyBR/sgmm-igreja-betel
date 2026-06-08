@@ -31,6 +31,13 @@ async function getDrive() {
   return google.drive({ version: 'v3', auth });
 }
 
+// Parâmetros necessários para trabalhar com Drives Compartilhados.
+// Sem isso, Service Accounts não conseguem gravar (não têm cota própria).
+const SHARED_DRIVE_OPTS = {
+  supportsAllDrives: true,
+  includeItemsFromAllDrives: true
+};
+
 async function listFolders(parentId = null) {
   const drive = await getDrive();
   const rootId = parentId || process.env.GOOGLE_DRIVE_FOLDER_ID;
@@ -38,7 +45,8 @@ async function listFolders(parentId = null) {
   const res = await drive.files.list({
     q: `'${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
     fields: 'files(id, name, createdTime)',
-    orderBy: 'createdTime desc'
+    orderBy: 'createdTime desc',
+    ...SHARED_DRIVE_OPTS
   });
 
   return res.data.files || [];
@@ -51,7 +59,8 @@ async function getOrCreateFolder(name, parentId) {
   // Verificar se já existe
   const existing = await drive.files.list({
     q: `name = '${name}' and '${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
-    fields: 'files(id, name)'
+    fields: 'files(id, name)',
+    ...SHARED_DRIVE_OPTS
   });
 
   if (existing.data.files && existing.data.files.length > 0) {
@@ -65,7 +74,8 @@ async function getOrCreateFolder(name, parentId) {
       mimeType: 'application/vnd.google-apps.folder',
       parents: [rootId]
     },
-    fields: 'id'
+    fields: 'id',
+    supportsAllDrives: true
   });
 
   return folder.data.id;
@@ -88,14 +98,16 @@ async function uploadFile(file, folderId) {
       mimeType: file.mimetype,
       body: stream
     },
-    fields: 'id, name, webViewLink, thumbnailLink, mimeType'
+    fields: 'id, name, webViewLink, thumbnailLink, mimeType',
+    supportsAllDrives: true
   });
 
   // Tornar o arquivo acessível para leitura (para thumbnail)
   try {
     await drive.permissions.create({
       fileId: res.data.id,
-      requestBody: { role: 'reader', type: 'anyone' }
+      requestBody: { role: 'reader', type: 'anyone' },
+      supportsAllDrives: true
     });
   } catch (e) {
     console.log('Permissão pública não configurada:', e.message);
@@ -106,7 +118,7 @@ async function uploadFile(file, folderId) {
 
 async function deleteFile(fileId) {
   const drive = await getDrive();
-  await drive.files.delete({ fileId });
+  await drive.files.delete({ fileId, supportsAllDrives: true });
 }
 
 module.exports = { listFolders, getOrCreateFolder, uploadFile, deleteFile };
