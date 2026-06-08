@@ -216,12 +216,12 @@ function DashboardEditor({ user }) {
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '10px 0', borderBottom: '1px solid #F3F4F6'
               }}>
-                <span style={{ fontSize: 22, flexShrink: 0 }}>{typeIcon[m.type] || '🊁'}</span>
+                <span style={{ fontSize: 22, flexShrink: 0 }}>{typeIcon[m.type] || '📄'}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
                     fontSize: 13, fontWeight: 500, color: '#1F2937',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-                  }}>{m~~name}</div>
+                  }}>{m.name}</div>
                   <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
                     {m.folderName || 'Sem pasta'} · {new Date(m.uploadedAt).toLocaleDateString('pt-BR')}
                   </div>
@@ -312,7 +312,7 @@ function DashboardAdmin({ user }) {
 
         <div style={{ background: 'white', borderRadius: 14, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 600, color: '#1F2937' }}>Pr̳{ximos cultos</h2>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: '#1F2937' }}>Próximos cultos</h2>
             <button onClick={() => navigate('/escalas')} style={{
               background: 'none', border: 'none', color: '#7C3AED', fontSize: 13,
               cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500
@@ -342,7 +342,7 @@ function DashboardAdmin({ user }) {
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#1F2937' }}>{s.title}</div>
                 <div style={{ fontSize: 12, color: '#6B7280' }}>
-                  {s.time && `${s.time} · `]{.assignments?.length || 0} escalados
+                  {s.time && `${s.time} · `} {s.assignments?.length || 0} escalados
                 </div>
               </div>
             </div>
