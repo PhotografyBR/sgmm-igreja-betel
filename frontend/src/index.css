@@ -215,3 +215,95 @@ tr:hover td { background: var(--bg-hover); }
 
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+/* ── Responsividade Mobile ──────────────────────────────────────────────────── */
+
+/* Tablet (até 768px) */
+@media (max-width: 768px) {
+  .page-body { padding: 20px 16px; }
+  .page-header-left h1 { font-size: 18px; }
+}
+
+/* Mobile (até 600px) */
+@media (max-width: 600px) {
+  /* Layout shell: sidebar vira bottom nav */
+  .app-shell {
+    flex-direction: column-reverse;
+  }
+
+  /* Sidebar vira barra de navegação inferior */
+  .app-shell > div:first-child {
+    width: 100% !important;
+    min-width: 100% !important;
+    height: 60px !important;
+    flex-direction: row !important;
+    border-right: none !important;
+    border-top: 1px solid var(--border) !important;
+    overflow: hidden !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 100 !important;
+    padding: 0 !important;
+  }
+
+  /* Conteúdo principal ocupa a tela toda com padding bottom para bottom nav */
+  .main-content {
+    height: 100dvh;
+    padding-bottom: 60px;
+  }
+
+  /* Page body */
+  .page-body {
+    padding: 16px 14px;
+  }
+
+  /* Grids de stats: 2 colunas no mobile */
+  .stat-grid-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* Page header empilha verticalmente */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    gap: 10px;
+  }
+  .page-header-left h1 { font-size: 18px; }
+  .page-header-actions { width: 100%; }
+  .page-header-actions .btn { flex: 1; justify-content: center; }
+
+  /* Modal ocupa quase tela toda */
+  .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal-box {
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    max-height: 92vh;
+  }
+  .modal-header { padding: 18px 18px 0; }
+  .modal-body { padding: 16px 18px 24px; }
+
+  /* Tabelas: scroll horizontal */
+  .table-wrap { margin: 0 -14px; padding: 0 14px; }
+
+  /* TopBar mais compacto */
+  header { padding: 0 16px !important; }
+  header h1 { font-size: 14px !important; }
+
+  /* Inputs maiores para facilitar toque */
+  input, select, textarea { font-size: 16px !important; padding: 10px 12px; }
+  .btn { min-height: 40px; }
+  .btn-sm { min-height: 34px; }
+}
+
+/* Oculta elementos de desktop no mobile */
+@media (max-width: 600px) {
+  .hide-mobile { display: none !important; }
+}
+
+/* Oculta elementos de mobile no desktop */
+@media (min-width: 601px) {
+  .hide-desktop { display: none !important; }
+}
