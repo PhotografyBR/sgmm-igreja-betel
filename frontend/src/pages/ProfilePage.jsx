@@ -1,188 +1,252 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import { User, Mail, Phone, Lock, Save, Eye, EyeOff, Clapperboard } from 'lucide-react';
+import { PageHeader, Field } from '../components/ui';
 
-const ROLE_LABELS = {
-  admin: 'Líder de Mídias',
-  pastoral: 'Gestão/Pastoral',
-  secretaria: 'Secretaria',
-  voluntario: 'Voluntário'
+const ROLE_META = {
+  admin:      { label: 'Líder de Mídias', icon: '👑' },
+  secretaria: { label: 'Secretaria',      icon: '📋' },
+  voluntario: { label: 'Voluntário',      icon: '🙋' }
 };
 
-const ROLE_COLORS = {
-  admin: { color: '#7C3AED', bg: '#EDE9FE' },
-  secretaria: { color: '#0891B2', bg: '#CFFAFE' },
-  voluntario: { color: '#059669', bg: '#D1FAE5' },
-  pastoral: { color: '#2563EB', bg: '#DBEAFE' }
+const INP = {
+  width: '100%', padding: '10px 13px', borderRadius: 10,
+  border: '1.5px solid var(--border)', fontSize: 14, outline: 'none',
+  background: 'white', fontFamily: 'inherit', color: 'var(--text)',
+  boxSizing: 'border-box', transition: 'border-color .16s, box-shadow .16s'
 };
 
 export default function ProfilePage() {
-  const { user, updateUser } = useAuth();
-  const [editingProfile, setEditingProfile] = useState(false);
-  const [profile, setProfile] = useState({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '' });
-  const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '', confirm: '' });
-  const [loadingProfile, setLoadingProfile] = useState(false);
-  const [loadingPassword, setLoadingPassword] = useState(false);
+  const { user: currentUser, updateUser } = useAuth();
+  const [loading, setLoading]   = useState(false);
+  const [showPwd, setShowPwd]   = useState({ nova: false, conf: false });
+  const [profile, setProfile]   = useState({ name: '', email: '', phone: '' });
+  const [pwdForm, setPwdForm]   = useState({ newPassword: '', confirm: '' });
+  const [stats, setStats]       = useState(null);
 
-  const roleStyle = ROLE_COLORS[user?.role] || ROLE_COLORS.voluntario;
+  useEffect(() => {
+    if (currentUser) {
+      setProfile({
+        name:  currentUser.name  || '',
+        email: currentUser.email || '',
+        phone: currentUser.phone || ''
+      });
+      loadStats();
+    }
+  }, [currentUser?.id]);
 
-  async function handleUpdateProfile(e) {
-    e.preventDefault();
-    if (!profile.name.trim()) return toast.error('O nome não pode ficar vazio');
-    if (!profile.email.trim()) return toast.error('O email não pode ficar vazio');
-
-    setLoadingProfile(true);
+  async function loadStats() {
     try {
-      const res = await api.put('/auth/update-profile', profile);
-      updateUser(res.data);
+      const hoje = new Date();
+      const requests = [-1, 0, 1].map(offset => {
+        const d = new Date(hoje.getFullYear(), hoje.getMonth() + offset, 1);
+        return api.get('/schedules', { params: { month: d.getMonth() + 1, year: d.getFullYear() } });
+      });
+      const results = await Promise.all(requests);
+      const all = results.flatMap(r => r.data);
+      const minhas = all.filter(s => s.assignments?.some(a => a.userId === currentUser?.id));
+      const confirmadas = minhas.filter(s => s.assignments?.find(a => a.userId === currentUser?.id)?.status === 'confirmed');
+      setStats({ total: minhas.length, confirmadas: confirmadas.length });
+    } catch { /* silencioso */ }
+  }
+
+  async function saveProfile(e) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await api.put(`/users/${currentUser.id}`, {
+        name: profile.name, email: profile.email, phone: profile.phone
+      });
+      if (updateUser) updateUser(res.data);
       toast.success('Perfil atualizado!');
-      setEditingProfile(false);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Erro ao atualizar perfil');
-    } finally {
-      setLoadingProfile(false);
-    }
+    } finally { setLoading(false); }
   }
 
-  async function handleChangePassword(e) {
+  async function savePassword(e) {
     e.preventDefault();
-    if (passwords.newPassword !== passwords.confirm) return toast.error('As senhas não coincidem');
-    if (passwords.newPassword.length < 6) return toast.error('A nova senha precisa ter pelo menos 6 caracteres');
-
-    setLoadingPassword(true);
+    if (pwdForm.newPassword !== pwdForm.confirm) return toast.error('As senhas não coincidem');
+    if (pwdForm.newPassword.length < 6) return toast.error('Mínimo de 6 caracteres');
+    setLoading(true);
     try {
-      await api.post('/auth/change-password', {
-        currentPassword: passwords.currentPassword,
-        newPassword: passwords.newPassword
-      });
-      toast.success('Senha alterada com sucesso!');
-      setPasswords({ currentPassword: '', newPassword: '', confirm: '' });
+      await api.put(`/users/${currentUser.id}`, { password: pwdForm.newPassword });
+      toast.success('Senha alterada!');
+      setPwdForm({ newPassword: '', confirm: '' });
     } catch (err) {
       toast.error(err.response?.data?.error || 'Erro ao alterar senha');
-    } finally {
-      setLoadingPassword(false);
-    }
+    } finally { setLoading(false); }
   }
 
-  const inputStyle = {
-    width: '100%', padding: '9px 12px', borderRadius: 8,
-    border: '1.5px solid #E5E7EB', fontSize: 14, outline: 'none',
-    fontFamily: 'inherit', boxSizing: 'border-box'
-  };
+  const rm = ROLE_META[currentUser?.role] || ROLE_META.voluntario;
+  const initials = (currentUser?.name || '').split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
 
   return (
-    <div className="fade-in" style={{ maxWidth: 560 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1E1B4B', marginBottom: 24 }}>Meu Perfil</h1>
+    <div className="fade-in" style={{ maxWidth: 700, margin: '0 auto' }}>
+      <PageHeader title="Meu Perfil" subtitle="Gerencie suas informações pessoais e acesso." />
 
-      {/* Dados do usuário */}
-      <div style={{ background: 'white', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+      {/* Hero card */}
+      <div style={{ borderRadius: 18, overflow: 'hidden', marginBottom: 24, boxShadow: 'var(--shadow)' }}>
+        <div style={{
+          height: 90,
+          background: 'linear-gradient(135deg, #1E1B4B 0%, #4C1D95 50%, #6D28D9 100%)',
+          position: 'relative'
+        }}>
           <div style={{
-            width: 60, height: 60, borderRadius: '50%',
-            background: `linear-gradient(135deg, ${roleStyle.color}, ${roleStyle.color}99)`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 24, color: 'white', fontWeight: 700, flexShrink: 0
+            position: 'absolute', top: 10, left: 10,
+            background: 'rgba(255,255,255,0.12)', borderRadius: 12,
+            padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 7
           }}>
-            {user?.name?.charAt(0).toUpperCase()}
+            <Clapperboard size={14} color="white" />
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'white', opacity: 0.85 }}>Igreja Betel</span>
           </div>
-          <div style={{ flex: 1 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1F2937', marginBottom: 4 }}>{user?.name}</h2>
-            <span style={{
-              fontSize: 12, padding: '3px 10px', borderRadius: 20,
-              background: roleStyle.bg, color: roleStyle.color, fontWeight: 600
+        </div>
+        <div style={{ background: 'white', padding: '0 24px 24px', position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, marginBottom: 16 }}>
+            <div style={{
+              width: 80, height: 80, borderRadius: 20,
+              background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'white', fontSize: 26, fontWeight: 900, letterSpacing: -1,
+              border: '4px solid white', marginTop: -30, flexShrink: 0,
+              boxShadow: '0 4px 20px rgba(109,40,217,0.3)'
             }}>
-              {ROLE_LABELS[user?.role] || user?.role}
-            </span>
+              {initials || <User size={32} color="white" />}
+            </div>
+            <div style={{ paddingBottom: 4 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}>
+                {currentUser?.name}
+              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, color: 'var(--text-3)' }}>{currentUser?.email}</span>
+                <span style={{
+                  background: '#EDE9FE', color: '#6D28D9',
+                  borderRadius: 999, padding: '2px 11px', fontSize: 12, fontWeight: 700
+                }}>{rm.icon} {rm.label}</span>
+              </div>
+            </div>
           </div>
-          {!editingProfile && (
-            <button onClick={() => {
-              setProfile({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '' });
-              setEditingProfile(true);
-            }} style={{
-              background: '#F3F4F6', border: 'none', borderRadius: 8,
-              padding: '7px 14px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: '#374151'
-            }}>
-              Editar
-            </button>
+          {stats && (
+            <div style={{ display: 'flex', gap: 20, paddingTop: 16, borderTop: '1px solid var(--border-soft)' }}>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--primary)' }}>{stats.total}</p>
+                <p style={{ fontSize: 11.5, color: 'var(--text-4)', fontWeight: 500 }}>escalas (3 meses)</p>
+              </div>
+              <div style={{ width: 1, background: 'var(--border-soft)' }} />
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: 22, fontWeight: 800, color: '#059669' }}>{stats.confirmadas}</p>
+                <p style={{ fontSize: 11.5, color: 'var(--text-4)', fontWeight: 500 }}>confirmadas</p>
+              </div>
+              {stats.total > 0 && (
+                <>
+                  <div style={{ width: 1, background: 'var(--border-soft)' }} />
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontSize: 22, fontWeight: 800, color: '#D97706' }}>
+                      {Math.round((stats.confirmadas / stats.total) * 100)}%
+                    </p>
+                    <p style={{ fontSize: 11.5, color: 'var(--text-4)', fontWeight: 500 }}>taxa de presença</p>
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
+      </div>
 
-        {editingProfile ? (
-          <form onSubmit={handleUpdateProfile}>
-            <div style={{ display: 'grid', gap: 12 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>Nome completo</label>
-                <input type="text" value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))} required style={inputStyle} />
+      {/* Dados pessoais */}
+      <div className="card" style={{ padding: 24, marginBottom: 18 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <User size={16} style={{ color: 'var(--primary)' }} /> Dados pessoais
+        </h3>
+        <form onSubmit={saveProfile}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <Field label="Nome completo">
+              <div style={{ position: 'relative' }}>
+                <User size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-4)' }} />
+                <input type="text" value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
+                  required placeholder="Seu nome completo" style={{ ...INP, paddingLeft: 38 }} />
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>Email</label>
-                <input type="email" value={profile.email} onChange={e => setProfile(p => ({ ...p, email: e.target.value }))} required style={inputStyle} />
+            </Field>
+            <Field label="Email">
+              <div style={{ position: 'relative' }}>
+                <Mail size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-4)' }} />
+                <input type="email" value={profile.email} onChange={e => setProfile(p => ({ ...p, email: e.target.value }))}
+                  required placeholder="seu@email.com" style={{ ...INP, paddingLeft: 38 }} />
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>Telefone</label>
-                <input type="tel" value={profile.phone} onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))} style={inputStyle} placeholder="(00) 00000-0000" />
+            </Field>
+            <Field label="Telefone (WhatsApp)">
+              <div style={{ position: 'relative' }}>
+                <Phone size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-4)' }} />
+                <input type="tel" value={profile.phone} onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))}
+                  placeholder="(00) 00000-0000" style={{ ...INP, paddingLeft: 38 }} />
               </div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-              <button type="button" onClick={() => setEditingProfile(false)} style={{
-                padding: '9px 18px', borderRadius: 8, border: '1.5px solid #E5E7EB',
-                background: 'white', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit'
-              }}>Cancelar</button>
-              <button type="submit" disabled={loadingProfile} style={{
-                padding: '9px 20px', borderRadius: 8, border: 'none',
-                background: loadingProfile ? '#A78BFA' : 'linear-gradient(135deg, #7C3AED, #6D28D9)',
-                color: 'white', fontSize: 14, fontWeight: 600,
-                cursor: loadingProfile ? 'not-allowed' : 'pointer', fontFamily: 'inherit'
-              }}>
-                {loadingProfile ? 'Salvando...' : 'Salvar alterações'}
-              </button>
-            </div>
-          </form>
-        ) : (
-          <div style={{ display: 'grid', gap: 0 }}>
-            {[
-              { label: 'Email', value: user?.email },
-              { label: 'Telefone', value: user?.phone || 'Não informado' }
-            ].map(({ label, value }) => (
-              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
-                <span style={{ fontSize: 13, color: '#6B7280' }}>{label}</span>
-                <span style={{ fontSize: 13, fontWeight: 500, color: '#1F2937' }}>{value}</span>
-              </div>
-            ))}
+            </Field>
           </div>
-        )}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              <Save size={15} /> {loading ? 'Salvando...' : 'Salvar alterações'}
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Alterar senha */}
-      <div style={{ background: 'white', borderRadius: 16, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-        <h3 style={{ fontSize: 16, fontWeight: 600, color: '#1F2937', marginBottom: 4 }}>Alterar senha</h3>
-        <p style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 16 }}>Use uma senha com pelo menos 6 caracteres.</p>
-        <form onSubmit={handleChangePassword}>
-          {[
-            { label: 'Senha atual', field: 'currentPassword' },
-            { label: 'Nova senha', field: 'newPassword' },
-            { label: 'Confirmar nova senha', field: 'confirm' }
-          ].map(({ label, field }) => (
-            <div key={field} style={{ marginBottom: 14 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>{label}</label>
-              <input
-                type="password"
-                value={passwords[field]}
-                onChange={e => setPasswords(p => ({ ...p, [field]: e.target.value }))}
-                required
-                style={inputStyle}
-              />
-            </div>
-          ))}
-          <button type="submit" disabled={loadingPassword} style={{
-            padding: '10px 24px', borderRadius: 8, border: 'none',
-            background: loadingPassword ? '#A78BFA' : 'linear-gradient(135deg, #7C3AED, #6D28D9)',
-            color: 'white', fontSize: 14, fontWeight: 600,
-            cursor: loadingPassword ? 'not-allowed' : 'pointer', fontFamily: 'inherit'
-          }}>
-            {loadingPassword ? 'Salvando...' : 'Alterar senha'}
-          </button>
+      <div className="card" style={{ padding: 24 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Lock size={16} style={{ color: 'var(--primary)' }} /> Alterar senha
+        </h3>
+        <p style={{ fontSize: 13, color: 'var(--text-4)', marginBottom: 18 }}>
+          Use uma senha com pelo menos 6 caracteres.
+        </p>
+        <form onSubmit={savePassword}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <Field label="Nova senha">
+              <div style={{ position: 'relative' }}>
+                <Lock size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-4)' }} />
+                <input
+                  type={showPwd.nova ? 'text' : 'password'}
+                  value={pwdForm.newPassword}
+                  onChange={e => setPwdForm(p => ({ ...p, newPassword: e.target.value }))}
+                  required placeholder="••••••••"
+                  style={{ ...INP, paddingLeft: 38, paddingRight: 42 }}
+                />
+                <button type="button" onClick={() => setShowPwd(p => ({ ...p, nova: !p.nova }))} style={{
+                  position: 'absolute', right: 13, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', color: 'var(--text-4)', cursor: 'pointer', padding: 2
+                }}>
+                  {showPwd.nova ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+            </Field>
+            <Field label="Confirmar nova senha">
+              <div style={{ position: 'relative' }}>
+                <Lock size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-4)' }} />
+                <input
+                  type={showPwd.conf ? 'text' : 'password'}
+                  value={pwdForm.confirm}
+                  onChange={e => setPwdForm(p => ({ ...p, confirm: e.target.value }))}
+                  required placeholder="••••••••"
+                  style={{ ...INP, paddingLeft: 38, paddingRight: 42 }}
+                />
+                <button type="button" onClick={() => setShowPwd(p => ({ ...p, conf: !p.conf }))} style={{
+                  position: 'absolute', right: 13, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', color: 'var(--text-4)', cursor: 'pointer', padding: 2
+                }}>
+                  {showPwd.conf ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+              {pwdForm.confirm && pwdForm.newPassword !== pwdForm.confirm && (
+                <p style={{ fontSize: 12, color: 'var(--danger)', marginTop: 5 }}>As senhas não coincidem</p>
+              )}
+            </Field>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
+            <button type="submit" className="btn btn-primary" disabled={loading || !pwdForm.newPassword || !pwdForm.confirm}>
+              <Save size={15} /> {loading ? 'Salvando...' : 'Alterar senha'}
+            </button>
+          </div>
         </form>
       </div>
     </div>

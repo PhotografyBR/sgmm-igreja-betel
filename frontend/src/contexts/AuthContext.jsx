@@ -10,8 +10,10 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const token = localStorage.getItem('sgmm_token');
     const savedUser = localStorage.getItem('sgmm_user');
+
     if (token && savedUser) {
       setUser(JSON.parse(savedUser));
+      // Validar token no servidor
       api.get('/auth/me')
         .then(res => setUser(res.data))
         .catch(() => logout())
@@ -35,28 +37,36 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  const isAdmin = user?.role === 'admin';
+  const isPastoral = user?.role === 'pastoral';
+  const isSecretaria = user?.role === 'secretaria';
+  const isVoluntario = user?.role === 'voluntario';
+  const canManageSchedules = isAdmin || isSecretaria;
+  const canManageTasks = isAdmin || isPastoral;
+  const canManageUsers = isAdmin;
+  const canViewMedia = isAdmin || isPastoral;
+
   function updateUser(newData) {
     const updated = { ...user, ...newData };
     setUser(updated);
     localStorage.setItem('sgmm_user', JSON.stringify(updated));
   }
 
-  const isAdmin = user?.role === 'admin';
-  const isPastoral = user?.role === 'pastoral';
-  const isSecretaria = user?.role === 'secretaria';
-  const isVoluntario = user?.role === 'voluntario';
-  const isEditor = user?.role === 'editor';
-  const canManageSchedules = isAdmin || isSecretaria;
-  const canManageTasks = isAdmin || isPastoral;
-  const canManageUsers = isAdmin;
-  const canViewMedia = isAdmin || isPastoral || isEditor;
-  const canFullMedia = isAdmin || isPastoral || isEditor;
-
   return (
     <AuthContext.Provider value={{
-      user, loading, login, logout, updateUser,
-      isAdmin, isPastoral, isSecretaria, isVoluntario, isEditor,
-      canManageSchedules, canManageTasks, canManageUsers, canViewMedia, canFullMedia
+      user,
+      loading,
+      login,
+      logout,
+      updateUser,
+      isAdmin,
+      isPastoral,
+      isSecretaria,
+      isVoluntario,
+      canManageSchedules,
+      canManageTasks,
+      canManageUsers,
+      canViewMedia
     }}>
       {children}
     </AuthContext.Provider>

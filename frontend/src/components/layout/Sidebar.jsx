@@ -1,72 +1,153 @@
 import { NavLink } from 'react-router-dom';
-import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import api from '../../services/api';
+import {
+  LayoutDashboard, CalendarDays, CalendarCheck, CheckSquare,
+  FolderOpen, BarChart3, Users, UserCircle, Clapperboard,
+  ChevronsLeft, ChevronsRight
+} from 'lucide-react';
 
-const icons = { dashboard: '🏠', escalas: '📅', minhasEscalas: '🗓️', tarefas: '✅', midias: '📁', relatorios: '📊', usuarios: '👥', perfil: '👤' };
-const roleLabels = { admin: 'Líder de Mídias', pastoral: 'Gestão/Pastoral', secretaria: 'Secretaria', voluntario: 'Voluntário', editor: 'Editor de Conteúdo' };
+const roleLabels = {
+  admin: 'Líder de Mídias',
+  pastoral: 'Gestão/Pastoral',
+  secretaria: 'Secretaria',
+  voluntario: 'Voluntário'
+};
 
-export default function Sidebar({ isOpen, onClose }) {
-  const { user, isAdmin, isVoluntario, isEditor } = useAuth();
-  const [pendentes, setPendentes] = useState(0);
-
-  useEffect(() => {
-    if (!isVoluntario || !user) return;
-    const hoje = new Date();
-    Promise.all([0, 1, 2].map(offset => {
-      const d = new Date(hoje.getFullYear(), hoje.getMonth() + offset, 1);
-      return api.get('/schedules', { params: { month: d.getMonth() + 1, year: d.getFullYear() } });
-    })).then(results => {
-      const all = results.flatMap(r => r.data);
-      const minhas = all.filter(s => s.assignments?.some(a => a.userId === user.id));
-      const p = minhas.filter(s => s.assignments?.find(x => x.userId === user.id)?.status === 'pending' && new Date(s.date + 'T00:00:00') >= hoje);
-      setPendentes(p.length);
-    }).catch(() => {});
-  }, [user, isVoluntario]);
+export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }) {
+  const { user, isAdmin, isVoluntario } = useAuth();
 
   const navItems = [
-    { to: '/', label: 'Dashboard', icon: icons.dashboard, exact: true },
+    { to: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true },
     ...(isVoluntario
-      ? [{ to: '/minhas-escalas', label: 'Minhas Escalas', icon: icons.minhasEscalas, badge: pendentes }]
-      : isEditor
-        ? []
-        : [{ to: '/escalas', label: 'Escalas', icon: icons.escalas }]
+      ? [{ to: '/minhas-escalas', label: 'Minhas Escalas', icon: CalendarCheck }]
+      : [{ to: '/escalas', label: 'Escalas', icon: CalendarDays }]
     ),
-    ...(!isEditor ? [{ to: '/tarefas', label: 'Tarefas', icon: icons.tarefas }] : []),
-    { to: '/midias', label: 'Repositório', icon: icons.midias },
-    ...(!isVoluntario && !isEditor ? [{ to: '/relatorios', label: 'Relatórios', icon: icons.relatorios }] : []),
-    ...(isAdmin ? [{ to: '/usuarios', label: 'Usuários', icon: icons.usuarios }] : []),
-    { to: '/perfil', label: 'Meu Perfil', icon: icons.perfil }
+    { to: '/tarefas', label: 'Tarefas', icon: CheckSquare },
+    ...(!isVoluntario ? [{ to: '/midias', label: 'Repositório', icon: FolderOpen }] : []),
+    ...(!isVoluntario ? [{ to: '/relatorios', label: 'Relatórios', icon: BarChart3 }] : []),
+    ...(isAdmin ? [{ to: '/usuarios', label: 'Usuários', icon: Users }] : []),
+    { to: '/perfil', label: 'Meu Perfil', icon: UserCircle }
   ];
 
   return (
-    <aside className={isOpen ? 'sidebar-open' : ''} style={{ width: 260, minWidth: 260, background: '#1E1B4B', color: 'white', display: 'flex', flexDirection: 'column', height: '100vh', position: 'sticky', top: 0, flexShrink: 0, zIndex: 50, transition: 'transform 0.3s ease' }}>
-      <div style={{ padding: '24px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #7C3AED, #A78BFA)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎬</div>
-          <div><div style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>Ministério</div><div style={{ fontSize: 12, color: '#A5B4FC' }}>de Mídias</div></div>
+    <aside
+      className={`${isOpen ? 'sidebar-open' : ''} ${collapsed ? 'collapsed' : ''}`}
+      style={{
+        width: collapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)',
+        minWidth: collapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)',
+        background: 'linear-gradient(180deg, var(--sidebar-bg-2) 0%, var(--sidebar-bg) 100%)',
+        color: 'white',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        position: 'sticky',
+        top: 0,
+        flexShrink: 0,
+        zIndex: 50,
+        transition: 'width 0.25s cubic-bezier(0.16,1,0.3,1), min-width 0.25s cubic-bezier(0.16,1,0.3,1), transform 0.3s ease'
+      }}>
+
+      {/* Logo */}
+      <div style={{
+        padding: collapsed ? '22px 0' : '22px 20px',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        gap: 12
+      }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: 12,
+          background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 4px 14px rgba(109,40,217,0.45)',
+          flexShrink: 0
+        }}>
+          <Clapperboard size={20} color="white" />
+        </div>
+        <div className="sidebar-logo-text">
+          <div style={{ fontWeight: 800, fontSize: 15, lineHeight: 1.2, letterSpacing: '-0.3px' }}>Ministério</div>
+          <div style={{ fontSize: 12, color: '#A5B4FC', fontWeight: 500 }}>de Mídias · Betel</div>
         </div>
       </div>
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 12px' }}>
-          <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg, #7C3AED, #EC4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>{user?.name?.charAt(0).toUpperCase()}</div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.name}</div>
-            <div style={{ fontSize: 11, color: '#A5B4FC' }}>{roleLabels[user?.role] || user?.role}</div>
+
+      {/* Usuário */}
+      <div style={{ padding: collapsed ? '14px 10px' : '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 11,
+          background: 'rgba(255,255,255,0.06)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 12,
+          padding: collapsed ? '8px' : '10px 12px',
+          justifyContent: collapsed ? 'center' : 'flex-start'
+        }}>
+          <div style={{
+            width: 38, height: 38, borderRadius: '50%',
+            background: 'linear-gradient(135deg, #8B5CF6, #EC4899)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 15, fontWeight: 700, flexShrink: 0,
+            boxShadow: '0 2px 10px rgba(236,72,153,0.3)'
+          }}>
+            {user?.name?.charAt(0).toUpperCase()}
+          </div>
+          <div className="sidebar-user-info" style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {user?.name}
+            </div>
+            <div style={{ fontSize: 11, color: '#A5B4FC', fontWeight: 500 }}>
+              {roleLabels[user?.role] || user?.role}
+            </div>
           </div>
         </div>
       </div>
-      <nav style={{ flex: 1, padding: '12px 12px', overflowY: 'auto' }}>
+
+      {/* Navegação */}
+      <nav style={{ flex: 1, padding: '12px 12px', overflowY: 'auto', overflowX: 'hidden' }}>
         {navItems.map(item => (
-          <NavLink key={item.to} to={item.to} end={item.exact} onClick={onClose}
-            style={({ isActive }) => ({ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 12px', borderRadius: 8, marginBottom: 2, color: isActive ? 'white' : 'rgba(255,255,255,0.65)', background: isActive ? 'rgba(124,58,237,0.5)' : 'transparent', fontSize: 14, fontWeight: isActive ? 600 : 400, transition: 'all 0.15s', textDecoration: 'none', justifyContent: 'space-between' })}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontSize: 20 }}>{item.icon}</span>{item.label}</span>
-            {item.badge > 0 && <span style={{ background: '#EF4444', color: 'white', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{item.badge}</span>}
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.exact}
+            onClick={onClose}
+            className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+            title={collapsed ? item.label : undefined}
+          >
+            <item.icon size={19} strokeWidth={2} style={{ flexShrink: 0 }} />
+            <span className="link-label">{item.label}</span>
           </NavLink>
         ))}
       </nav>
-      <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>SGMM v1.0 · Igreja Betel</div>
+
+      {/* Recolher (desktop) */}
+      <button
+        className="sidebar-collapse-btn"
+        onClick={onToggleCollapse}
+        style={{
+          margin: '0 12px 10px',
+          padding: '9px',
+          borderRadius: 10,
+          border: '1px solid rgba(255,255,255,0.1)',
+          background: 'rgba(255,255,255,0.05)',
+          color: 'rgba(255,255,255,0.6)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          fontSize: 12.5,
+          fontWeight: 600,
+          transition: 'all 0.16s ease'
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'white'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
+      >
+        {collapsed ? <ChevronsRight size={16} /> : <><ChevronsLeft size={16} /><span className="link-label">Recolher menu</span></>}
+      </button>
+
+      {/* Rodapé */}
+      <div className="sidebar-footer-text" style={{ padding: '10px 20px 16px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.3)', textAlign: 'center', fontWeight: 500 }}>
+          SGMM v2.0 · Igreja Betel
+        </div>
       </div>
     </aside>
   );
