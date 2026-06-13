@@ -69,15 +69,15 @@ export default function MinhasEscalasPage() {
       {/* Alerta */}
       {!loading && pendentes.length > 0 && (
         <div style={{
-          background: 'var(--warning-soft)', border: '1px solid #FCD34D', borderRadius: 'var(--radius)',
+          background: 'var(--warning-bg)', border: '1px solid #FCD34D', borderRadius: 'var(--radius)',
           padding: '13px 16px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12
         }}>
-          <AlertTriangle size={20} style={{ color: 'var(--warning-dark)', flexShrink: 0 }} />
+          <AlertTriangle size={20} style={{ color: 'var(--warning)', flexShrink: 0 }} />
           <div>
-            <div style={{ fontWeight: 700, color: 'var(--warning-dark)', fontSize: 13.5 }}>
+            <div style={{ fontWeight: 700, color: 'var(--warning)', fontSize: 13.5 }}>
               {pendentes.length === 1 ? '1 escala aguardando sua confirmação' : `${pendentes.length} escalas aguardando confirmação`}
             </div>
-            <div style={{ color: 'var(--warning-dark)', opacity: 0.85, fontSize: 12, marginTop: 1 }}>
+            <div style={{ color: 'var(--warning)', opacity: 0.85, fontSize: 12, marginTop: 1 }}>
               Confirme ou recuse sua presença nas escalas abaixo.
             </div>
           </div>
@@ -117,9 +117,9 @@ export default function MinhasEscalasPage() {
 
             return (
               <div key={s.id} style={{
-                background: 'white', borderRadius: 'var(--radius-lg)',
-                border: '1px solid var(--border-soft)',
-                boxShadow: 'var(--shadow-xs)',
+                background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--border)',
+                boxShadow: 'var(--shadow-sm)',
                 borderLeft: `4px solid ${isPast ? 'var(--border)' : typeColor}`,
                 opacity: isPast ? 0.72 : 1,
                 overflow: 'hidden'
@@ -170,7 +170,7 @@ export default function MinhasEscalasPage() {
                 {minha?.status === 'pending' && !isPast && (
                   <div style={{
                     display: 'flex', gap: 10, padding: '12px 18px',
-                    borderTop: '1px solid var(--border-soft)', background: 'var(--bg)'
+                    borderTop: '1px solid var(--border)', background: 'var(--bg)'
                   }}>
                     <button className="btn btn-success" style={{ flex: 1 }} onClick={() => handleConfirm(s.id, 'confirmed')}>
                       <CheckCircle size={15} /> Confirmar presença

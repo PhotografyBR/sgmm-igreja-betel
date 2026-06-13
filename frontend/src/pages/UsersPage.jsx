@@ -22,8 +22,8 @@ const ROLES = {
 
 const INP = {
   width: '100%', padding: '10px 13px', borderRadius: 10,
-  border: '1.5px solid var(--border)', fontSize: 14, outline: 'none',
-  background: 'white', fontFamily: 'inherit', color: 'var(--text)',
+  border: '1px solid var(--border-soft)', fontSize: 14, outline: 'none',
+  background: 'var(--bg-card)', fontFamily: 'inherit', color: 'var(--text)',
   boxSizing: 'border-box', transition: 'border-color .16s'
 };
 
@@ -151,7 +151,7 @@ export default function UsersPage() {
                 {byRole[role].map(u => (
                   <div key={u.id} className="card card-hover" style={{
                     display: 'flex', alignItems: 'center', gap: 13, padding: '14px 16px',
-                    border: u.id === currentUser?.id ? `2px solid ${meta.color}` : '1px solid var(--border-soft)',
+                    border: u.id === currentUser?.id ? `2px solid ${meta.color}` : '1px solid var(--border)',
                     position: 'relative'
                   }}>
                     {u.id === currentUser?.id && (

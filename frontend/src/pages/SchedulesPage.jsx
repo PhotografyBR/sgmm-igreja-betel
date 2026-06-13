@@ -30,9 +30,9 @@ const STATUS_META = {
 
 const INP = {
   width: '100%', padding: '10px 13px', borderRadius: 10,
-  border: '1.5px solid var(--border)', fontSize: 14, outline: 'none',
-  background: 'white', fontFamily: 'inherit', color: 'var(--text)',
-  transition: 'border-color .16s'
+  border: '1px solid var(--border-soft)', fontSize: 13, outline: 'none',
+  background: 'var(--bg-input)', fontFamily: 'inherit', color: 'var(--text)',
+  transition: 'border-color .16s', boxSizing: 'border-box',
 };
 
 export default function SchedulesPage() {
@@ -220,11 +220,11 @@ export default function SchedulesPage() {
                         style={{
                           minHeight: 78, padding: '6px 5px', borderRadius: 10,
                           cursor: day ? 'pointer' : 'default',
-                          background: isSelected ? 'var(--primary-soft)' : today ? 'var(--primary-fade)' : 'transparent',
-                          border: isSelected ? '2px solid var(--primary-light)' : today ? '2px solid var(--primary-soft)' : '2px solid transparent',
+                          background: isSelected ? 'var(--bg-active)' : today ? 'var(--primary-fade)' : 'transparent',
+                          border: isSelected ? '2px solid var(--primary-light)' : today ? '2px solid var(--primary-fade)' : '2px solid transparent',
                           transition: '.15s'
                         }}
-                        onMouseEnter={e => { if (day && !isSelected) e.currentTarget.style.background = 'var(--border-soft)'; }}
+                        onMouseEnter={e => { if (day && !isSelected) e.currentTarget.style.background = 'var(--bg-hover)'; }}
                         onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = today ? 'var(--primary-fade)' : 'transparent'; }}
                       >
                         {day && (
@@ -380,7 +380,7 @@ export default function SchedulesPage() {
                       style={{
                         flex: 1, padding: '9px 12px', borderRadius: 9,
                         border: `1.5px solid ${a.userId ? 'var(--primary-light)' : 'var(--border)'}`,
-                        fontSize: 13, background: 'white', fontFamily: 'inherit',
+                        fontSize: 13, background: 'var(--bg-input)', fontFamily: 'inherit',
                         color: a.userId ? 'var(--text)' : 'var(--text-4)',
                         outline: 'none'
                       }}
@@ -422,9 +422,8 @@ function ScheduleCard({ s, user, users = [], canManage, onEdit, onDelete, onConf
 
   return (
     <div style={{
-      background: 'white', borderRadius: 'var(--radius)',
-      border: '1px solid var(--border-soft)',
-      boxShadow: 'var(--shadow-xs)',
+      background: 'var(--bg-card)', borderRadius: 'var(--radius)',
+      border: '1px solid var(--border)',
       overflow: 'hidden'
     }}>
       {/* Cabeçalho do card */}
@@ -475,7 +474,7 @@ function ScheduleCard({ s, user, users = [], canManage, onEdit, onDelete, onConf
 
       {/* Equipe expandida */}
       {open && (
-        <div className="fade-in" style={{ padding: '12px 15px 14px 19px', borderTop: '1px solid var(--border-soft)', background: 'var(--bg)' }}>
+        <div className="fade-in" style={{ padding: '12px 15px 14px 19px', borderTop: '1px solid var(--border)', background: 'var(--bg-hover)' }}>
           <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-4)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 10 }}>
             Equipe ({assignmentsComNome.length})
           </p>
@@ -583,6 +582,4 @@ function ModalWhatsApp({ escala, users, onClose }) {
         })}
       </div>
       <button className="btn btn-secondary" style={{ width: '100%', marginTop: 18 }} onClick={onClose}>Fechar</button>
-    </Modal>
-  );
-}
+    </Mod

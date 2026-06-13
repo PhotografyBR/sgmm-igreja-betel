@@ -24,8 +24,8 @@ const PRIORITY = {
 
 const INP = {
   width: '100%', padding: '10px 13px', borderRadius: 10,
-  border: '1.5px solid var(--border)', fontSize: 14, outline: 'none',
-  background: 'white', fontFamily: 'inherit',
+  border: '1px solid var(--border-soft)', fontSize: 14, outline: 'none',
+  background: 'var(--bg-card)', fontFamily: 'inherit',
   transition: 'border-color .16s'
 };
 
@@ -264,10 +264,10 @@ export default function TasksPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 200, backdropFilter: 'blur(2px)' }} onClick={() => setSelectedTask(null)}>
           <div className="slide-in-right" style={{
             position: 'absolute', right: 0, top: 0, bottom: 0, width: '100%', maxWidth: 440,
-            background: 'white', overflowY: 'auto', boxShadow: '-8px 0 40px rgba(15,23,42,0.18)'
+            background: 'var(--bg-card)', overflowY: 'auto', boxShadow: '-8px 0 40px rgba(15,23,42,0.18)'
           }} onClick={e => e.stopPropagation()}>
             {/* Header do drawer */}
-            <div style={{ padding: '20px 22px', borderBottom: '1px solid var(--border-soft)', position: 'sticky', top: 0, background: 'white', zIndex: 1 }}>
+            <div style={{ padding: '20px 22px', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 1 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
                 <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)', flex: 1, lineHeight: 1.35 }}>{selectedTask.title}</h2>
                 <button className="btn btn-ghost btn-icon" onClick={() => setSelectedTask(null)}><X size={18} /></button>
@@ -282,7 +282,7 @@ export default function TasksPage() {
                   { icon: Flag, label: 'Prioridade', value: PRIORITY[selectedTask.priority]?.label || '—', color: PRIORITY[selectedTask.priority]?.color },
                   { icon: CalendarDays, label: 'Prazo', value: selectedTask.dueDate ? new Date(selectedTask.dueDate).toLocaleDateString('pt-BR') : '—' }
                 ].map(({ icon: Icon, label, value, color }) => (
-                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 0', borderBottom: '1px solid var(--border-soft)' }}>
+                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
                     <span style={{ fontSize: 13, color: 'var(--text-3)', display: 'inline-flex', alignItems: 'center', gap: 7 }}>
                       <Icon size={14} /> {label}
                     </span>
@@ -344,7 +344,7 @@ export default function TasksPage() {
 
               {/* Ações admin */}
               {canManageTasks && (
-                <div style={{ paddingTop: 8, borderTop: '1px solid var(--border-soft)' }}>
+                <div style={{ paddingTop: 8, borderTop: '1px solid var(--border)' }}>
                   <button className="btn btn-danger-soft btn-sm" onClick={() => deleteTask(selectedTask.id)}>
                     <Trash2 size={14} /> Remover tarefa
                   </button>

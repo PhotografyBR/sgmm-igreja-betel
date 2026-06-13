@@ -13,8 +13,8 @@ const ROLE_META = {
 
 const INP = {
   width: '100%', padding: '10px 13px', borderRadius: 10,
-  border: '1.5px solid var(--border)', fontSize: 14, outline: 'none',
-  background: 'white', fontFamily: 'inherit', color: 'var(--text)',
+  border: '1px solid var(--border-soft)', fontSize: 14, outline: 'none',
+  background: 'var(--bg-card)', fontFamily: 'inherit', color: 'var(--text)',
   boxSizing: 'border-box', transition: 'border-color .16s, box-shadow .16s'
 };
 
@@ -103,7 +103,7 @@ export default function ProfilePage() {
             <span style={{ fontSize: 12, fontWeight: 700, color: 'white', opacity: 0.85 }}>Igreja Betel</span>
           </div>
         </div>
-        <div style={{ background: 'white', padding: '0 24px 24px', position: 'relative' }}>
+        <div style={{ background: 'var(--bg-card)', padding: '0 24px 24px', position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, marginBottom: 16 }}>
             <div style={{
               width: 80, height: 80, borderRadius: 20,
@@ -129,19 +129,19 @@ export default function ProfilePage() {
             </div>
           </div>
           {stats && (
-            <div style={{ display: 'flex', gap: 20, paddingTop: 16, borderTop: '1px solid var(--border-soft)' }}>
+            <div style={{ display: 'flex', gap: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
               <div style={{ textAlign: 'center' }}>
                 <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--primary)' }}>{stats.total}</p>
                 <p style={{ fontSize: 11.5, color: 'var(--text-4)', fontWeight: 500 }}>escalas (3 meses)</p>
               </div>
-              <div style={{ width: 1, background: 'var(--border-soft)' }} />
+              <div style={{ width: 1, background: 'var(--border)' }} />
               <div style={{ textAlign: 'center' }}>
                 <p style={{ fontSize: 22, fontWeight: 800, color: '#059669' }}>{stats.confirmadas}</p>
                 <p style={{ fontSize: 11.5, color: 'var(--text-4)', fontWeight: 500 }}>confirmadas</p>
               </div>
               {stats.total > 0 && (
                 <>
-                  <div style={{ width: 1, background: 'var(--border-soft)' }} />
+                  <div style={{ width: 1, background: 'var(--border)' }} />
                   <div style={{ textAlign: 'center' }}>
                     <p style={{ fontSize: 22, fontWeight: 800, color: '#D97706' }}>
                       {Math.round((stats.confirmadas / stats.total) * 100)}%

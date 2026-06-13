@@ -17,7 +17,7 @@ function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
-      background: 'white', border: '1px solid var(--border-soft)', borderRadius: 10,
+      background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10,
       padding: '10px 14px', boxShadow: 'var(--shadow-md)', fontSize: 13
     }}>
       {label && <p style={{ fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>{label}</p>}
@@ -112,8 +112,8 @@ export default function RelatoriosPage() {
   }
 
   const INP_SEL = {
-    padding: '8px 12px', borderRadius: 9, border: '1.5px solid var(--border)',
-    fontSize: 13, background: 'white', fontFamily: 'inherit', fontWeight: 600,
+    padding: '8px 12px', borderRadius: 9, border: '1px solid var(--border-soft)',
+    fontSize: 13, background: 'var(--bg-card)', fontFamily: 'inherit', fontWeight: 600,
     outline: 'none', color: 'var(--text)'
   };
 
@@ -162,7 +162,7 @@ export default function RelatoriosPage() {
                   </h3>
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={porVoluntario} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-soft)" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                       <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'var(--text-3)' }} />
                       <YAxis tick={{ fontSize: 12, fill: 'var(--text-3)' }} allowDecimals={false} />
                       <Tooltip content={<CustomTooltip />} />
@@ -201,7 +201,7 @@ export default function RelatoriosPage() {
                   </h3>
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={porFuncao} layout="vertical" margin={{ top: 0, right: 16, left: 4, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-soft)" />
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
                       <XAxis type="number" tick={{ fontSize: 12, fill: 'var(--text-3)' }} allowDecimals={false} />
                       <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: 'var(--text-3)' }} width={110} />
                       <Tooltip content={<CustomTooltip />} />

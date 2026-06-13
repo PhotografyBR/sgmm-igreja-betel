@@ -88,7 +88,7 @@ export default function MediaPage() {
     return acc;
   }, {});
 
-  const SEL = { padding: '8px 12px', borderRadius: 9, border: '1.5px solid var(--border)', fontSize: 13, background: 'white', outline: 'none', fontFamily: 'inherit' };
+  const SEL = { padding: '8px 12px', borderRadius: 9, border: '1px solid var(--border-soft)', fontSize: 13, background: 'var(--bg-card)', outline: 'none', fontFamily: 'inherit' };
 
   return (
     <div className="fade-in">
@@ -205,7 +205,7 @@ export default function MediaPage() {
               style={{
                 border: `2px dashed ${dragActive ? 'var(--primary-light)' : selectedFile ? 'var(--success)' : 'var(--border)'}`,
                 borderRadius: 14, padding: '32px 20px', textAlign: 'center', cursor: 'pointer',
-                background: dragActive ? 'var(--primary-fade)' : selectedFile ? 'var(--success-soft)' : 'var(--bg)',
+                background: dragActive ? 'var(--primary-fade)' : selectedFile ? 'var(--success-bg)' : 'var(--bg)',
                 transition: 'all .16s', marginBottom: 18
               }}
             >
@@ -214,7 +214,7 @@ export default function MediaPage() {
                 onChange={e => setSelectedFile(e.target.files[0])} />
               <div style={{
                 width: 52, height: 52, borderRadius: 14, margin: '0 auto 12px',
-                background: selectedFile ? 'var(--success-soft)' : 'var(--border-soft)',
+                background: selectedFile ? 'var(--success-bg)' : 'var(--border)',
                 color: selectedFile ? 'var(--success)' : 'var(--text-4)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
@@ -231,7 +231,7 @@ export default function MediaPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
               <Field label="Culto relacionado (opcional)">
                 <select value={uploadForm.scheduleId} onChange={e => setUploadForm(p => ({ ...p, scheduleId: e.target.value }))}
-                  style={{ width: '100%', padding: '10px 13px', borderRadius: 10, border: '1.5px solid var(--border)', fontSize: 14, background: 'white', outline: 'none' }}>
+                  style={{ width: '100%', padding: '10px 13px', borderRadius: 10, border: '1px solid var(--border-soft)', fontSize: 14, background: 'var(--bg-card)', outline: 'none' }}>
                   <option value="">Arquivo geral</option>
                   {schedules.map(s => (
                     <option key={s.id} value={s.id}>
@@ -244,7 +244,7 @@ export default function MediaPage() {
                 <input value={uploadForm.description}
                   onChange={e => setUploadForm(p => ({ ...p, description: e.target.value }))}
                   placeholder="Ex: Fotos da pregação (opcional)"
-                  style={{ width: '100%', padding: '10px 13px', borderRadius: 10, border: '1.5px solid var(--border)', fontSize: 14, outline: 'none' }} />
+                  style={{ width: '100%', padding: '10px 13px', borderRadius: 10, border: '1px solid var(--border-soft)', fontSize: 14, outline: 'none' }} />
               </Field>
             </div>
 

@@ -1,154 +1,173 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
+import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   LayoutDashboard, CalendarDays, CalendarCheck, CheckSquare,
-  FolderOpen, BarChart3, Users, UserCircle, Clapperboard,
-  ChevronsLeft, ChevronsRight
+  FolderOpen, BarChart3, Users, UserCircle, Video,
+  ChevronLeft, ChevronRight, LogOut
 } from 'lucide-react';
 
-const roleLabels = {
-  admin: 'Líder de Mídias',
-  pastoral: 'Gestão/Pastoral',
-  secretaria: 'Secretaria',
-  voluntario: 'Voluntário'
-};
+const NAV = [
+  {
+    label: 'Principal',
+    items: [
+      { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
+      { to: '/escalas',        icon: CalendarDays,    label: 'Escalas' },
+      { to: '/minhas-escalas', icon: CalendarCheck,   label: 'Minhas Escalas' },
+      { to: '/tarefas',        icon: CheckSquare,     label: 'Tarefas' },
+      { to: '/repositorio',    icon: FolderOpen,      label: 'Repositório' },
+      { to: '/relatorios',     icon: BarChart3,       label: 'Relatórios' },
+    ]
+  },
+  {
+    label: 'Conta',
+    items: [
+      { to: '/usuarios', icon: Users,      label: 'Usuários',   adminOnly: true },
+      { to: '/perfil',   icon: UserCircle, label: 'Meu Perfil' },
+    ]
+  }
+];
 
-export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }) {
-  const { user, isAdmin, isVoluntario } = useAuth();
+const AVATAR_COLORS = ['#7C3AED','#0E7490','#059669','#D97706','#DC2626'];
+function getColor(name = '') { return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length]; }
+function initials(name = '') { return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase(); }
 
-  const navItems = [
-    { to: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-    ...(isVoluntario
-      ? [{ to: '/minhas-escalas', label: 'Minhas Escalas', icon: CalendarCheck }]
-      : [{ to: '/escalas', label: 'Escalas', icon: CalendarDays }]
-    ),
-    { to: '/tarefas', label: 'Tarefas', icon: CheckSquare },
-    ...(!isVoluntario ? [{ to: '/midias', label: 'Repositório', icon: FolderOpen }] : []),
-    ...(!isVoluntario ? [{ to: '/relatorios', label: 'Relatórios', icon: BarChart3 }] : []),
-    ...(isAdmin ? [{ to: '/usuarios', label: 'Usuários', icon: Users }] : []),
-    { to: '/perfil', label: 'Meu Perfil', icon: UserCircle }
-  ];
+export default function Sidebar() {
+  const { user, logout } = useAuth();
+  const [collapsed, setCollapsed] = useState(false);
+  const location = useLocation();
+
+  const color = getColor(user?.name);
+
+  const S = {
+    sidebar: {
+      width: collapsed ? 64 : 220,
+      minWidth: collapsed ? 64 : 220,
+      background: 'var(--bg-sidebar)',
+      borderRight: '1px solid var(--border)',
+      display: 'flex',
+      flexDirection: 'column',
+      transition: 'width .22s ease, min-width .22s ease',
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    logo: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      padding: collapsed ? '20px 16px 20px' : '20px 20px 20px',
+      borderBottom: '1px solid var(--border)',
+      overflow: 'hidden',
+      transition: 'padding .22s',
+    },
+    logoIcon: {
+      width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+      background: 'linear-gradient(135deg, #7C3AED, #A78BFA)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    },
+    nav: { flex: 1, padding: '12px 0', overflowY: 'auto', overflowX: 'hidden' },
+    section: { padding: collapsed ? '12px 0 4px' : '12px 12px 4px' },
+    sectionLabel: {
+      fontSize: 10, fontWeight: 700, color: 'var(--text-5)',
+      textTransform: 'uppercase', letterSpacing: 1,
+      padding: collapsed ? '0 8px' : '0 8px',
+      marginBottom: 4,
+      display: collapsed ? 'none' : 'block',
+    },
+    navItem: (active) => ({
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      padding: collapsed ? '9px 20px' : '9px 10px',
+      borderRadius: collapsed ? 0 : 8,
+      margin: collapsed ? 0 : '1px 0',
+      color: active ? 'var(--primary-light)' : 'var(--text-4)',
+      background: active ? 'var(--bg-active)' : 'transparent',
+      textDecoration: 'none',
+      fontSize: 13,
+      fontWeight: active ? 600 : 500,
+      transition: 'all .15s',
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      cursor: 'pointer',
+      border: 'none',
+      fontFamily: 'inherit',
+      width: '100%',
+      justifyContent: collapsed ? 'center' : 'flex-start',
+    }),
+    activeDot: {
+      width: 6, height: 6, borderRadius: '50%',
+      background: 'var(--primary)', marginLeft: 'auto', flexShrink: 0,
+    },
+    userArea: {
+      padding: collapsed ? '12px 8px' : '12px',
+      borderTop: '1px solid var(--border)',
+    },
+    userCard: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      padding: collapsed ? '8px 0' : '10px 12px',
+      borderRadius: 10,
+      background: collapsed ? 'transparent' : 'var(--bg-input)',
+      overflow: 'hidden',
+      justifyContent: collapsed ? 'center' : 'flex-start',
+    },
+    avatar: {
+      width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+      background: color,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: 'white', fontSize: 12, fontWeight: 800,
+    },
+    collapseBtn: {
+      position: 'absolute', top: 22, right: -12,
+      width: 24, height: 24, borderRadius: '50%',
+      background: 'var(--bg-card)', border: '1px solid var(--border-soft)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      cursor: 'pointer', color: 'var(--text-4)', zIndex: 10,
+      transition: 'background .15s',
+    },
+  };
 
   return (
-    <aside
-      className={`${isOpen ? 'sidebar-open' : ''} ${collapsed ? 'collapsed' : ''}`}
-      style={{
-        width: collapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)',
-        minWidth: collapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)',
-        background: 'linear-gradient(180deg, var(--sidebar-bg-2) 0%, var(--sidebar-bg) 100%)',
-        color: 'white',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100vh',
-        position: 'sticky',
-        top: 0,
-        flexShrink: 0,
-        zIndex: 50,
-        transition: 'width 0.25s cubic-bezier(0.16,1,0.3,1), min-width 0.25s cubic-bezier(0.16,1,0.3,1), transform 0.3s ease'
-      }}>
+    <div style={S.sidebar}>
+      <button style={S.collapseBtn} onClick={() => setCollapsed(c => !c)}>
+        {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
+      </button>
 
-      {/* Logo */}
-      <div style={{
-        padding: collapsed ? '22px 0' : '22px 20px',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: collapsed ? 'center' : 'flex-start',
-        gap: 12
-      }}>
-        <div style={{
-          width: 40, height: 40, borderRadius: 12,
-          background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 4px 14px rgba(109,40,217,0.45)',
-          flexShrink: 0
-        }}>
-          <Clapperboard size={20} color="white" />
+      <div style={S.logo}>
+        <div style={S.logoIcon}>
+          <Video size={16} color="white" />
         </div>
-        <div className="sidebar-logo-text">
-          <div style={{ fontWeight: 800, fontSize: 15, lineHeight: 1.2, letterSpacing: '-0.3px' }}>Ministério</div>
-          <div style={{ fontSize: 12, color: '#A5B4FC', fontWeight: 500 }}>de Mídias · Betel</div>
-        </div>
+        {!collapsed && (
+          <div style={{ overflow: 'hidden' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>Ministério</div>
+            <div style={{ fontSize: 11, color: 'var(--text-4)', marginTop: 1 }}>de Mídias</div>
+          </div>
+        )}
       </div>
 
-      {/* Usuário */}
-      <div style={{ padding: collapsed ? '14px 10px' : '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 11,
-          background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.07)',
-          borderRadius: 12,
-          padding: collapsed ? '8px' : '10px 12px',
-          justifyContent: collapsed ? 'center' : 'flex-start'
-        }}>
-          <div style={{
-            width: 38, height: 38, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #8B5CF6, #EC4899)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 15, fontWeight: 700, flexShrink: 0,
-            boxShadow: '0 2px 10px rgba(236,72,153,0.3)'
-          }}>
-            {user?.name?.charAt(0).toUpperCase()}
+      <nav style={S.nav}>
+        {NAV.map(section => (
+          <div key={section.label} style={S.section}>
+            <div style={S.sectionLabel}>{section.label}</div>
+            {section.items
+              .filter(item => !item.adminOnly || user?.role === 'admin')
+              .map(item => {
+                const active = location.pathname === item.to;
+                return (
+                  <NavLink key={item.to} to={item.to} style={S.navItem(active)}>
+                    <item.icon size={16} style={{ flexShrink: 0 }} />
+                    {!collapsed && <span>{item.label}</span>}
+                    {!collapsed && active && <div style={S.activeDot} />}
+                  </NavLink>
+                );
+              })}
           </div>
-          <div className="sidebar-user-info" style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {user?.name}
-            </div>
-            <div style={{ fontSize: 11, color: '#A5B4FC', fontWeight: 500 }}>
-              {roleLabels[user?.role] || user?.role}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Navegação */}
-      <nav style={{ flex: 1, padding: '12px 12px', overflowY: 'auto', overflowX: 'hidden' }}>
-        {navItems.map(item => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.exact}
-            onClick={onClose}
-            className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-            title={collapsed ? item.label : undefined}
-          >
-            <item.icon size={19} strokeWidth={2} style={{ flexShrink: 0 }} />
-            <span className="link-label">{item.label}</span>
-          </NavLink>
         ))}
       </nav>
 
-      {/* Recolher (desktop) */}
-      <button
-        className="sidebar-collapse-btn"
-        onClick={onToggleCollapse}
-        style={{
-          margin: '0 12px 10px',
-          padding: '9px',
-          borderRadius: 10,
-          border: '1px solid rgba(255,255,255,0.1)',
-          background: 'rgba(255,255,255,0.05)',
-          color: 'rgba(255,255,255,0.6)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-          fontSize: 12.5,
-          fontWeight: 600,
-          transition: 'all 0.16s ease'
-        }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'white'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
-      >
-        {collapsed ? <ChevronsRight size={16} /> : <><ChevronsLeft size={16} /><span className="link-label">Recolher menu</span></>}
-      </button>
-
-      {/* Rodapé */}
-      <div className="sidebar-footer-text" style={{ padding: '10px 20px 16px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.3)', textAlign: 'center', fontWeight: 500 }}>
-          SGMM v2.0 · Igreja Betel
-        </div>
-      </div>
-    </aside>
-  );
-}
+      <div style={S.userArea}>
+        <div style={S.userCard}>
+          <div style={S.avatar}>{initials(user?.name)}</div>
+          {!collapse
