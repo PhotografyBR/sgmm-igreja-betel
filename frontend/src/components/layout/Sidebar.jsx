@@ -55,7 +55,7 @@ export default function Sidebar() {
       display: 'flex',
       alignItems: 'center',
       gap: 10,
-      padding: collapsed ? '20px 16px 20px' : '20px 20px 20px',
+      padding: collapsed ? '20px 16px' : '20px 20px',
       borderBottom: '1px solid var(--border)',
       overflow: 'hidden',
       transition: 'padding .22s',
@@ -70,7 +70,7 @@ export default function Sidebar() {
     sectionLabel: {
       fontSize: 10, fontWeight: 700, color: 'var(--text-5)',
       textTransform: 'uppercase', letterSpacing: 1,
-      padding: collapsed ? '0 8px' : '0 8px',
+      padding: '0 8px',
       marginBottom: 4,
       display: collapsed ? 'none' : 'block',
     },
@@ -170,4 +170,26 @@ export default function Sidebar() {
       <div style={S.userArea}>
         <div style={S.userCard}>
           <div style={S.avatar}>{initials(user?.name)}</div>
-          {!collapse
+          {!collapsed && (
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)' }} className="truncate">{user?.name}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-4)', marginTop: 1 }}>
+                {user?.role === 'admin' ? 'Lider de Midias' : user?.role === 'secretaria' ? 'Secretaria' : 'Voluntario'}
+              </div>
+            </div>
+          )}
+          {!collapsed && (
+            <button onClick={logout} title="Sair" style={{
+              background: 'none', border: 'none', color: 'var(--text-4)',
+              cursor: 'pointer', padding: 4, borderRadius: 6,
+              display: 'flex', alignItems: 'center',
+              transition: 'color .15s',
+            }}>
+              <LogOut size={14} />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

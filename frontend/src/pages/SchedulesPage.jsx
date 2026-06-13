@@ -582,4 +582,7 @@ function ModalWhatsApp({ escala, users, onClose }) {
         })}
       </div>
       <button className="btn btn-secondary" style={{ width: '100%', marginTop: 18 }} onClick={onClose}>Fechar</button>
-    </Mod
+    </Modal>
+  );
+}
+

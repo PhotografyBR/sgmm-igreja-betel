@@ -12,8 +12,8 @@ const notifIcons = {
 const PAGE_TITLES = {
   '/dashboard': 'Dashboard', '/escalas': 'Escalas',
   '/minhas-escalas': 'Minhas Escalas', '/tarefas': 'Tarefas',
-  '/repositorio': 'Repositório', '/relatorios': 'Relatórios',
-  '/usuarios': 'Usuários', '/perfil': 'Meu Perfil',
+  '/repositorio': 'Repositorio', '/relatorios': 'Relatorios',
+  '/usuarios': 'Usuarios', '/perfil': 'Meu Perfil',
 };
 
 function timeAgo(date) {
@@ -129,7 +129,7 @@ export default function TopBar() {
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               }}>
                 <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <BellRing size={14} style={{ color: 'var(--primary-light)' }} /> Notificações
+                  <BellRing size={14} style={{ color: 'var(--primary-light)' }} /> Notificacoes
                 </span>
                 {unreadCount > 0 && (
                   <button onClick={markAllRead} style={{
@@ -141,7 +141,7 @@ export default function TopBar() {
               <div style={{ maxHeight: 360, overflowY: 'auto' }}>
                 {notifications.length === 0 ? (
                   <div style={{ padding: 28, textAlign: 'center', color: 'var(--text-4)', fontSize: 13 }}>
-                    Sem notificações
+                    Sem notificacoes
                   </div>
                 ) : notifications.slice(0, 12).map(n => {
                   const Icon = notifIcons[n.type] || Bell;
@@ -213,4 +213,13 @@ export default function TopBar() {
                 transition: 'background .12s',
               }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--danger-bg)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'none'
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                <LogOut size={15} /> Sair
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
