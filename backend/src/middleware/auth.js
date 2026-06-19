@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { readDB } = require('../config/database');
+const { resolvePermissions } = require('../config/permissions');
 
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -19,7 +20,16 @@ function authMiddleware(req, res, next) {
       return res.status(401).json({ error: 'Usuário não encontrado' });
     }
 
-    req.user = { id: user.id, email: user.email, role: user.role, name: user.name };
+    const permissions = resolvePermissions(user, db.groups || []);
+
+    req.user = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name,
+      groupId: user.groupId || null,
+      permissions,
+    };
     next();
   } catch (err) {
     return res.status(401).json({ error: 'Token inválido ou expirado' });
@@ -35,6 +45,19 @@ function requireRole(...roles) {
   };
 }
 
+// Checagem por permissao granular. O admin (master) sempre passa.
+function requirePermission(...keys) {
+  return (req, res, next) => {
+    if (req.user.role === 'admin') return next();
+    const perms = req.user.permissions || [];
+    const ok = keys.some(k => perms.includes(k));
+    if (!ok) {
+      return res.status(403).json({ error: 'Você não tem permissão para esta ação' });
+    }
+    next();
+  };
+}
+
 // Roles: admin, pastoral, secretaria, voluntario
 const ROLES = {
   ADMIN: 'admin',
@@ -43,4 +66,4 @@ const ROLES = {
   VOLUNTARIO: 'voluntario'
 };
 
-module.exports = { authMiddleware, requireRole, ROLES };
+module.exports = { authMiddleware, requireRole, requirePermission, ROLES };

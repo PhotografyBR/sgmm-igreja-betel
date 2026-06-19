@@ -15,7 +15,10 @@ export function AuthProvider({ children }) {
       setUser(JSON.parse(savedUser));
       // Validar token no servidor
       api.get('/auth/me')
-        .then(res => setUser(res.data))
+        .then(res => {
+          setUser(res.data);
+          localStorage.setItem('sgmm_user', JSON.stringify(res.data));
+        })
         .catch(() => logout())
         .finally(() => setLoading(false));
     } else {
@@ -38,13 +41,26 @@ export function AuthProvider({ children }) {
   }
 
   const isAdmin = user?.role === 'admin';
-  const isPastoral = user?.role === 'pastoral';
-  const isSecretaria = user?.role === 'secretaria';
-  const isVoluntario = user?.role === 'voluntario';
-  const canManageSchedules = isAdmin || isSecretaria;
-  const canManageTasks = isAdmin || isPastoral;
-  const canManageUsers = isAdmin;
-  const canViewMedia = isAdmin || isPastoral;
+
+  // Helper central de permissão: admin (master) sempre pode tudo.
+  function can(permission) {
+    if (!user) return false;
+    if (user.role === 'admin') return true;
+    return Array.isArray(user.permissions) && user.permissions.includes(permission);
+  }
+
+  // Atalhos derivados de permissões (mantém compatibilidade com o código antigo)
+  const canManageSchedules = can('schedules.manage');
+  const canViewSchedules   = can('schedules.view');
+  const canManageTasks     = can('tasks.manage');
+  const canViewTasks       = can('tasks.view');
+  const canViewMedia       = can('media.view');
+  const canUploadMedia     = can('media.upload');
+  const canViewReports     = can('reports.view');
+  const canViewUsers       = can('users.view') || can('users.manage');
+  const canManageUsers     = can('users.manage');
+  const canManageGroups    = can('groups.manage');
+  const canViewMySchedules = can('myschedules.view');
 
   function updateUser(newData) {
     const updated = { ...user, ...newData };
@@ -59,14 +75,19 @@ export function AuthProvider({ children }) {
       login,
       logout,
       updateUser,
+      can,
       isAdmin,
-      isPastoral,
-      isSecretaria,
-      isVoluntario,
+      canViewSchedules,
       canManageSchedules,
+      canViewTasks,
       canManageTasks,
+      canViewMedia,
+      canUploadMedia,
+      canViewReports,
+      canViewUsers,
       canManageUsers,
-      canViewMedia
+      canManageGroups,
+      canViewMySchedules,
     }}>
       {children}
     </AuthContext.Provider>

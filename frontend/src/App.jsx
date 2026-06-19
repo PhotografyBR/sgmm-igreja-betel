@@ -8,12 +8,13 @@ import SchedulesPage from './pages/SchedulesPage';
 import TasksPage from './pages/TasksPage';
 import MediaPage from './pages/MediaPage';
 import UsersPage from './pages/UsersPage';
+import GroupsPage from './pages/GroupsPage';
 import ProfilePage from './pages/ProfilePage';
 import MinhasEscalasPage from './pages/MinhasEscalasPage';
 import RelatoriosPage from './pages/RelatoriosPage';
 
-function ProtectedRoute({ children, allowedRoles }) {
-  const { user, loading } = useAuth();
+function ProtectedRoute({ children, allowedRoles, requiredPermission }) {
+  const { user, loading, can } = useAuth();
 
   if (loading) {
     return (
@@ -31,6 +32,7 @@ function ProtectedRoute({ children, allowedRoles }) {
 
   if (!user) return <Navigate to="/login" replace />;
   if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/" replace />;
+  if (requiredPermission && !can(requiredPermission)) return <Navigate to="/" replace />;
 
   return children;
 }
@@ -51,22 +53,27 @@ function AppRoutes() {
         <Route path="escalas" element={<SchedulesPage />} />
         <Route path="tarefas" element={<TasksPage />} />
         <Route path="midias" element={
-          <ProtectedRoute allowedRoles={['admin', 'pastoral', 'voluntario']}>
+          <ProtectedRoute requiredPermission="media.view">
             <MediaPage />
           </ProtectedRoute>
         } />
         <Route path="usuarios" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute requiredPermission="users.view">
             <UsersPage />
           </ProtectedRoute>
         } />
+        <Route path="grupos" element={
+          <ProtectedRoute requiredPermission="groups.manage">
+            <GroupsPage />
+          </ProtectedRoute>
+        } />
         <Route path="relatorios" element={
-          <ProtectedRoute allowedRoles={['admin', 'pastoral']}>
+          <ProtectedRoute requiredPermission="reports.view">
             <RelatoriosPage />
           </ProtectedRoute>
         } />
         <Route path="minhas-escalas" element={
-          <ProtectedRoute allowedRoles={['voluntario']}>
+          <ProtectedRoute requiredPermission="myschedules.view">
             <MinhasEscalasPage />
           </ProtectedRoute>
         } />

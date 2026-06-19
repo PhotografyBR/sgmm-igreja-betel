@@ -5,6 +5,7 @@ const path = require('path');
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
+const groupRoutes = require('./routes/groups');
 const scheduleRoutes = require('./routes/schedules');
 const taskRoutes = require('./routes/tasks');
 const mediaRoutes = require('./routes/media');
@@ -26,6 +27,7 @@ app.use(express.urlencoded({ extended: true }));
 // Rotas da API
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/groups', groupRoutes);
 app.use('/api/schedules', scheduleRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/media', mediaRoutes);

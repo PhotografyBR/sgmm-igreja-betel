@@ -28,15 +28,16 @@ const INP = {
 };
 
 export default function UsersPage() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, canManageUsers, canManageGroups } = useAuth();
   const [users, setUsers]               = useState([]);
+  const [groups, setGroups]             = useState([]);
   const [loading, setLoading]           = useState(true);
   const [showModal, setShowModal]       = useState(false);
   const [showPermissions, setShowPermissions] = useState(false);
   const [editing, setEditing]           = useState(null);
   const [search, setSearch]             = useState('');
   const [filterRole, setFilterRole]     = useState('todos');
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'voluntario', phone: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'voluntario', phone: '', groupId: '' });
 
   useEffect(() => { loadUsers(); }, []);
 
@@ -44,19 +45,22 @@ export default function UsersPage() {
     try {
       const res = await api.get('/users');
       setUsers(res.data);
+      if (canManageGroups) {
+        try { const g = await api.get('/groups'); setGroups(g.data); } catch { /* sem grupos */ }
+      }
     } catch { toast.error('Erro ao carregar usuários'); }
     finally { setLoading(false); }
   }
 
   function openNew() {
     setEditing(null);
-    setForm({ name: '', email: '', password: '', role: 'voluntario', phone: '' });
+    setForm({ name: '', email: '', password: '', role: 'voluntario', phone: '', groupId: '' });
     setShowModal(true);
   }
 
   function openEdit(u) {
     setEditing(u);
-    setForm({ name: u.name, email: u.email, password: '', role: u.role, phone: u.phone || '' });
+    setForm({ name: u.name, email: u.email, password: '', role: u.role, phone: u.phone || '', groupId: u.groupId || '' });
     setShowModal(true);
   }
 
@@ -94,6 +98,10 @@ export default function UsersPage() {
     return acc;
   }, {});
 
+  function groupName(id) {
+    return groups.find(g => g.id === id)?.name;
+  }
+
   return (
     <div className="fade-in">
       <PageHeader
@@ -103,7 +111,7 @@ export default function UsersPage() {
           <button className="btn btn-secondary" onClick={() => setShowPermissions(true)}>
             <Shield size={15} /> Permissões
           </button>
-          {currentUser?.role === 'admin' && (
+          {canManageUsers && (
             <button className="btn btn-primary" onClick={openNew}>
               <Plus size={16} /> Novo membro
             </button>
@@ -164,9 +172,14 @@ export default function UsersPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 2 }} className="truncate">{u.name}</p>
                       <p style={{ fontSize: 12, color: 'var(--text-3)' }} className="truncate">{u.email}</p>
+                      {u.groupId && groupName(u.groupId) && (
+                        <span style={{ display: 'inline-block', marginTop: 4, fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'var(--primary-fade)', color: 'var(--primary-light)' }}>
+                          {groupName(u.groupId)}
+                        </span>
+                      )}
                       {u.phone && <p style={{ fontSize: 11.5, color: 'var(--text-4)', marginTop: 1 }}>{u.phone}</p>}
                     </div>
-                    {currentUser?.role === 'admin' && (
+                    {canManageUsers && (
                       <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
                         <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openEdit(u)}><Edit2 size={14} /></button>
                         {u.id !== currentUser?.id && (
@@ -208,7 +221,7 @@ export default function UsersPage() {
                 <select value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))} style={INP}>
                   {Object.entries(ROLES).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.label}</option>)}
                 </select>
-                {form.role && (
+                {form.role && !form.groupId && (
                   <div style={{ marginTop: 8, padding: '10px 13px', background: ROLES[form.role]?.bg + '99', borderRadius: 9 }}>
                     <p style={{ fontSize: 12, color: ROLES[form.role]?.color, fontWeight: 700, marginBottom: 4 }}>Permissões:</p>
                     {ROLES[form.role]?.permissions.map((p, i) => (
@@ -217,6 +230,20 @@ export default function UsersPage() {
                   </div>
                 )}
               </Field>
+
+              {canManageGroups && groups.length > 0 && (
+                <Field label="Grupo de acesso (opcional)">
+                  <select value={form.groupId} onChange={e => setForm(p => ({ ...p, groupId: e.target.value }))} style={INP}>
+                    <option value="">Usar permissões padrão do perfil</option>
+                    {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                  </select>
+                  {form.groupId && (
+                    <p style={{ fontSize: 12, color: 'var(--text-4)', marginTop: 6 }}>
+                      Quando em um grupo, as permissões vêm do grupo e substituem as do perfil.
+                    </p>
+                  )}
+                </Field>
+              )}
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 22 }}>
               <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
@@ -248,6 +275,11 @@ export default function UsersPage() {
                 </div>
               </div>
             ))}
+            {canManageGroups && (
+              <p style={{ fontSize: 12.5, color: 'var(--text-4)', textAlign: 'center', marginTop: 4 }}>
+                Precisa de algo sob medida? Crie grupos personalizados na aba <strong style={{ color: 'var(--primary-light)' }}>Grupos</strong>.
+              </p>
+            )}
           </div>
         </Modal>
       )}

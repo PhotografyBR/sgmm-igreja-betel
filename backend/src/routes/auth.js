@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { readDB, writeDB } = require('../config/database');
 const { authMiddleware } = require('../middleware/auth');
+const { resolvePermissions } = require('../config/permissions');
 
 const router = express.Router();
 
@@ -39,7 +40,9 @@ router.post('/login', async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      phone: user.phone
+      groupId: user.groupId || null,
+      phone: user.phone,
+      permissions: resolvePermissions(user, db.groups || [])
     }
   });
 });
@@ -55,7 +58,9 @@ router.get('/me', authMiddleware, (req, res) => {
     name: user.name,
     email: user.email,
     role: user.role,
-    phone: user.phone
+    groupId: user.groupId || null,
+    phone: user.phone,
+    permissions: resolvePermissions(user, db.groups || [])
   });
 });
 

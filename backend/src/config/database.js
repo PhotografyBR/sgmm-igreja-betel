@@ -14,6 +14,7 @@ const defaultDB = {
       createdAt: new Date().toISOString()
     }
   ],
+  groups: [],
   schedules: [],
   tasks: [],
   media: [],
