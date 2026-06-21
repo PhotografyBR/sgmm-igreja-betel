@@ -12,6 +12,7 @@ const mediaRoutes = require('./routes/media');
 const notificationRoutes = require('./routes/notifications');
 const adminRoutes = require('./routes/admin');
 const { startBackupScheduler } = require('./services/backup');
+const { startCleanupScheduler } = require('./services/cleanup');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -65,6 +66,7 @@ async function startServer() {
   app.listen(PORT, () => {
     console.log(`SGMM Backend rodando na porta ${PORT}`);
     startBackupScheduler();
+    startCleanupScheduler();
   });
 }
 

@@ -121,6 +121,16 @@ sgmm/
 
 ---
 
+## Novidades desta versão
+
+- **Lembrete por WhatsApp** — no botão "Avisar pelo WhatsApp" de cada escala agora há duas opções: *Convocação* (com link de confirmação) e *Lembrete*. O envio continua manual, abrindo o WhatsApp com a mensagem pronta.
+- **Upload de vários arquivos** — o repositório de mídia aceita selecionar e enviar vários arquivos de uma vez.
+- **Anexos nas tarefas** — cada tarefa pode receber anexos, seja fazendo upload de um arquivo novo ou vinculando um arquivo que já está no repositório.
+- **Arquivos permanentes** — o ícone de estrela em cada arquivo marca/desmarca como permanente. Arquivos permanentes nunca são removidos pela limpeza automática.
+- **Limpeza automática (60 dias)** — uma rotina diária remove do app os arquivos com mais de 60 dias (configurável em `MEDIA_RETENTION_DAYS`), preservando os permanentes. Os arquivos continuam no Google Drive. O líder pode rodar manualmente em `POST /api/admin/cleanup` e ver a prévia em `GET /api/admin/cleanup/preview`.
+
+---
+
 ## Dúvidas ou problemas
 
 Entre em contato com quem configurou o sistema ou abra uma issue no repositório.

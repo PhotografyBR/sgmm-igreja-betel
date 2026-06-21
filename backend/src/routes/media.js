@@ -19,6 +19,12 @@ const upload = multer({
 
 const FULL_ACCESS_ROLES = ['admin', 'pastoral', 'editor'];
 
+function tipoDoArquivo(nome) {
+  if (/jpeg|jpg|png|gif|raw|cr2|arw/i.test(nome)) return 'foto';
+  if (/mp4|mov|avi|mkv|webm/i.test(nome)) return 'video';
+  return 'documento';
+}
+
 router.get('/', authMiddleware, (req, res) => {
   const db = readDB();
   let media = db.media || [];
@@ -36,8 +42,34 @@ router.get('/', authMiddleware, (req, res) => {
   res.json(media);
 });
 
-router.post('/upload', authMiddleware, upload.single('file'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+// Faz upload de um arquivo para o Drive e devolve o registro de midia (sem salvar no db)
+async function processarArquivo(file, { scheduleId, description, folderId, folderName, user }) {
+  const driveFile = await driveService.uploadFile(file, folderId);
+  return {
+    id: uuidv4(),
+    name: file.originalname,
+    driveFileId: driveFile.id,
+    driveUrl: driveFile.webViewLink,
+    thumbnailUrl: driveFile.thumbnailLink || null,
+    mimeType: file.mimetype,
+    type: tipoDoArquivo(file.originalname),
+    size: file.size,
+    scheduleId: scheduleId || null,
+    folderName,
+    description: description || '',
+    permanent: false,
+    uploadedBy: user.id,
+    uploaderName: user.name,
+    createdAt: new Date().toISOString()
+  };
+}
+
+// POST /api/media/upload — aceita 1 ou varios arquivos (campo "files"; "file" mantido por compatibilidade)
+router.post('/upload', authMiddleware, upload.array('files', 30), async (req, res) => {
+  // Compatibilidade: se vier no campo "file" (singular), o multer.any nao pega,
+  // entao aceitamos tanto req.files quanto req.file.
+  let arquivos = req.files && req.files.length ? req.files : (req.file ? [req.file] : []);
+  if (!arquivos.length) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
 
   const { scheduleId, description } = req.body;
   const db = readDB();
@@ -62,43 +94,52 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
     }
   }
 
-  try {
-    const driveFile = await driveService.uploadFile(req.file, folderId);
-    const isImage = /jpeg|jpg|png|gif|raw|cr2|arw/i.test(req.file.originalname);
-    const isVideo = /mp4|mov|avi|mkv|webm/i.test(req.file.originalname);
+  if (!db.media) db.media = [];
+  const enviados = [];
+  const falhas = [];
 
-    const mediaRecord = {
-      id: uuidv4(), name: req.file.originalname,
-      driveFileId: driveFile.id, driveUrl: driveFile.webViewLink,
-      thumbnailUrl: driveFile.thumbnailLink || null,
-      mimeType: req.file.mimetype,
-      type: isImage ? 'foto' : isVideo ? 'video' : 'documento',
-      size: req.file.size, scheduleId: scheduleId || null,
-      folderName, description: description || '',
-      uploadedBy: req.user.id, uploaderName: req.user.name,
-      createdAt: new Date().toISOString()
-    };
-
-    if (!db.media) db.media = [];
-    db.media.push(mediaRecord);
-
-    const admins = (db.users || []).filter(u => ['admin', 'pastoral'].includes(u.role));
-    admins.forEach(admin => {
-      if (!db.notifications) db.notifications = [];
-      db.notifications.push({
-        id: uuidv4(), userId: admin.id, type: 'media_upload',
-        title: 'Novo arquivo enviado',
-        message: req.user.name + ' enviou "' + req.file.originalname + '" para ' + folderName,
-        relatedId: mediaRecord.id, read: false, createdAt: new Date().toISOString()
-      });
-    });
-
-    writeDB(db);
-    res.status(201).json(mediaRecord);
-  } catch (err) {
-    console.error('Erro no upload:', err);
-    res.status(500).json({ error: 'Erro ao fazer upload para o Google Drive', details: err.message });
+  for (const file of arquivos) {
+    try {
+      const registro = await processarArquivo(file, { scheduleId, description, folderId, folderName, user: req.user });
+      db.media.push(registro);
+      enviados.push(registro);
+    } catch (err) {
+      console.error('Erro no upload de', file.originalname, err.message);
+      falhas.push({ name: file.originalname, error: err.message });
+    }
   }
+
+  if (enviados.length === 0) {
+    return res.status(500).json({ error: 'Erro ao enviar arquivos para o Google Drive', falhas });
+  }
+
+  // Notifica admins/pastoral
+  const admins = (db.users || []).filter(u => ['admin', 'pastoral'].includes(u.role));
+  admins.forEach(admin => {
+    if (!db.notifications) db.notifications = [];
+    const resumo = enviados.length === 1 ? `"${enviados[0].name}"` : `${enviados.length} arquivos`;
+    db.notifications.push({
+      id: uuidv4(), userId: admin.id, type: 'media_upload',
+      title: 'Novos arquivos enviados',
+      message: req.user.name + ' enviou ' + resumo + ' para ' + folderName,
+      relatedId: enviados[0].id, read: false, createdAt: new Date().toISOString()
+    });
+  });
+
+  writeDB(db);
+  res.status(201).json({ enviados, falhas, total: enviados.length });
+});
+
+// PATCH /api/media/:id/permanent — marca/desmarca arquivo como permanente (nao some na limpeza)
+router.patch('/:id/permanent', authMiddleware, requireRole('admin', 'pastoral', 'editor'), (req, res) => {
+  const db = readDB();
+  if (!db.media) db.media = [];
+  const item = db.media.find(m => m.id === req.params.id);
+  if (!item) return res.status(404).json({ error: 'Arquivo nao encontrado' });
+
+  item.permanent = typeof req.body.permanent === 'boolean' ? req.body.permanent : !item.permanent;
+  writeDB(db);
+  res.json({ id: item.id, permanent: item.permanent });
 });
 
 router.delete('/:id', authMiddleware, requireRole('admin', 'pastoral', 'editor'), async (req, res) => {

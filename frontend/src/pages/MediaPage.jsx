@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import { Upload, Image, Film, FileText, FolderOpen, ExternalLink, Trash2, X } from 'lucide-react';
+import { Upload, Image, Film, FileText, FolderOpen, ExternalLink, Trash2, X, Star } from 'lucide-react';
 import { PageHeader, Card, Badge, Modal, Field, EmptyState } from '../components/ui';
 
 const TYPE_META = {
@@ -12,6 +12,7 @@ const TYPE_META = {
 };
 
 function formatSize(bytes) {
+  if (!bytes) return '';
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
@@ -27,7 +28,7 @@ export default function MediaPage() {
   const [filterType, setFilterType]         = useState('');
   const [showUpload, setShowUpload]         = useState(false);
   const [uploadForm, setUploadForm] = useState({ scheduleId: '', description: '' });
-  const [selectedFile, setSelectedFile]     = useState(null);
+  const [selectedFiles, setSelectedFiles]   = useState([]);
   const [dragActive, setDragActive]         = useState(false);
   const fileRef = useRef();
 
@@ -42,27 +43,47 @@ export default function MediaPage() {
         api.get('/media', { params }),
         api.get('/schedules')
       ]);
-      setMedia(mediaRes.data);
+      // Filtro por tipo no cliente (a API nao filtra por type no GET base)
+      let lista = mediaRes.data;
+      if (filterType) lista = lista.filter(m => m.type === filterType);
+      setMedia(lista);
       setSchedules(schedRes.data);
     } catch { toast.error('Erro ao carregar arquivos'); }
     finally { setLoading(false); }
   }
 
+  function addFiles(fileList) {
+    const novos = Array.from(fileList || []);
+    if (!novos.length) return;
+    setSelectedFiles(prev => {
+      const nomes = new Set(prev.map(f => f.name + f.size));
+      const filtrados = novos.filter(f => !nomes.has(f.name + f.size));
+      return [...prev, ...filtrados];
+    });
+  }
+
+  function removeFile(idx) {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== idx));
+  }
+
   async function handleUpload(e) {
     e.preventDefault();
-    if (!selectedFile) return toast.error('Selecione um arquivo');
+    if (!selectedFiles.length) return toast.error('Selecione ao menos um arquivo');
     const formData = new FormData();
-    formData.append('file', selectedFile);
+    selectedFiles.forEach(f => formData.append('files', f));
     if (uploadForm.scheduleId) formData.append('scheduleId', uploadForm.scheduleId);
     if (uploadForm.description) formData.append('description', uploadForm.description);
     setUploading(true);
     try {
-      await api.post('/media/upload', formData, {
+      const res = await api.post('/media/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: ev => setUploadProgress(Math.round((ev.loaded * 100) / ev.total))
       });
-      toast.success('Arquivo enviado com sucesso!');
-      setShowUpload(false); setSelectedFile(null);
+      const enviados = res.data?.enviados?.length ?? selectedFiles.length;
+      const falhas = res.data?.falhas?.length ?? 0;
+      toast.success(`${enviados} arquivo${enviados !== 1 ? 's' : ''} enviado${enviados !== 1 ? 's' : ''}!`);
+      if (falhas) toast.error(`${falhas} arquivo(s) falharam no envio`);
+      setShowUpload(false); setSelectedFiles([]);
       setUploadForm({ scheduleId: '', description: '' });
       loadData();
     } catch (err) { toast.error(err.response?.data?.error || 'Erro no upload'); }
@@ -75,10 +96,17 @@ export default function MediaPage() {
     catch { toast.error('Erro ao remover'); }
   }
 
+  async function togglePermanent(item) {
+    try {
+      const res = await api.patch(`/media/${item.id}/permanent`, { permanent: !item.permanent });
+      setMedia(prev => prev.map(m => m.id === item.id ? { ...m, permanent: res.data.permanent } : m));
+      toast.success(res.data.permanent ? 'Marcado como permanente' : 'Permanente removido');
+    } catch { toast.error('Erro ao atualizar'); }
+  }
+
   function handleDrop(e) {
     e.preventDefault(); setDragActive(false);
-    const file = e.dataTransfer.files[0];
-    if (file) setSelectedFile(file);
+    if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
   }
 
   const grouped = media.reduce((acc, m) => {
@@ -97,7 +125,7 @@ export default function MediaPage() {
         subtitle={`${media.length} arquivo${media.length !== 1 ? 's' : ''} · Armazenados no Google Drive`}
         actions={
           <button className="btn btn-primary" onClick={() => setShowUpload(true)}>
-            <Upload size={16} /> Upload de arquivo
+            <Upload size={16} /> Upload de arquivos
           </button>
         }
       />
@@ -145,7 +173,7 @@ export default function MediaPage() {
               {files.map(f => {
                 const meta = TYPE_META[f.type] || TYPE_META.documento;
                 return (
-                  <div key={f.id} className="card card-hover" style={{ padding: 0, overflow: 'hidden' }}>
+                  <div key={f.id} className="card card-hover" style={{ padding: 0, overflow: 'hidden', position: 'relative' }}>
                     {/* Thumbnail */}
                     <div style={{
                       height: 130, background: meta.soft,
@@ -164,6 +192,16 @@ export default function MediaPage() {
                       }}>
                         {meta.label}
                       </span>
+                      {f.permanent && (
+                        <span title="Arquivo permanente" style={{
+                          position: 'absolute', top: 8, left: 8,
+                          background: '#F59E0B', color: 'white',
+                          fontSize: 10, fontWeight: 800, padding: '3px 7px', borderRadius: 6,
+                          display: 'inline-flex', alignItems: 'center', gap: 3
+                        }}>
+                          <Star size={10} fill="white" /> FIXO
+                        </span>
+                      )}
                     </div>
                     {/* Info */}
                     <div style={{ padding: '11px 13px' }}>
@@ -177,6 +215,16 @@ export default function MediaPage() {
                         <a href={f.driveUrl} target="_blank" rel="noreferrer" className="btn btn-soft btn-sm" style={{ flex: 1, textAlign: 'center' }}>
                           <ExternalLink size={12} /> Abrir
                         </a>
+                        {isAdmin && (
+                          <button
+                            className="btn btn-soft btn-sm btn-icon"
+                            onClick={() => togglePermanent(f)}
+                            title={f.permanent ? 'Remover permanente' : 'Marcar como permanente'}
+                            style={{ color: f.permanent ? '#F59E0B' : 'var(--text-4)' }}
+                          >
+                            <Star size={13} fill={f.permanent ? '#F59E0B' : 'none'} />
+                          </button>
+                        )}
                         {isAdmin && (
                           <button className="btn btn-danger-soft btn-sm btn-icon" onClick={() => deleteMedia(f.id)} title="Remover">
                             <Trash2 size={13} />
@@ -194,7 +242,7 @@ export default function MediaPage() {
 
       {/* Modal Upload */}
       {showUpload && (
-        <Modal title="Upload de arquivo" onClose={() => setShowUpload(false)} maxWidth={480}>
+        <Modal title="Upload de arquivos" onClose={() => setShowUpload(false)} maxWidth={480}>
           <form onSubmit={handleUpload}>
             {/* Área de drop */}
             <div
@@ -203,30 +251,50 @@ export default function MediaPage() {
               onDragLeave={() => setDragActive(false)}
               onDrop={handleDrop}
               style={{
-                border: `2px dashed ${dragActive ? 'var(--primary-light)' : selectedFile ? 'var(--success)' : 'var(--border)'}`,
-                borderRadius: 14, padding: '32px 20px', textAlign: 'center', cursor: 'pointer',
-                background: dragActive ? 'var(--primary-fade)' : selectedFile ? 'var(--success-bg)' : 'var(--bg)',
-                transition: 'all .16s', marginBottom: 18
+                border: `2px dashed ${dragActive ? 'var(--primary-light)' : selectedFiles.length ? 'var(--success)' : 'var(--border)'}`,
+                borderRadius: 14, padding: '28px 20px', textAlign: 'center', cursor: 'pointer',
+                background: dragActive ? 'var(--primary-fade)' : selectedFiles.length ? 'var(--success-bg)' : 'var(--bg)',
+                transition: 'all .16s', marginBottom: 14
               }}
             >
-              <input ref={fileRef} type="file" style={{ display: 'none' }}
-                accept="image/*,video/*,.raw,.cr2,.arw"
-                onChange={e => setSelectedFile(e.target.files[0])} />
+              <input ref={fileRef} type="file" multiple style={{ display: 'none' }}
+                accept="image/*,video/*,.raw,.cr2,.arw,.pdf,.doc,.docx"
+                onChange={e => addFiles(e.target.files)} />
               <div style={{
                 width: 52, height: 52, borderRadius: 14, margin: '0 auto 12px',
-                background: selectedFile ? 'var(--success-bg)' : 'var(--border)',
-                color: selectedFile ? 'var(--success)' : 'var(--text-4)',
+                background: selectedFiles.length ? 'var(--success-bg)' : 'var(--border)',
+                color: selectedFiles.length ? 'var(--success)' : 'var(--text-4)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
-                {selectedFile ? <CheckCircleMini /> : <Upload size={24} />}
+                <Upload size={24} />
               </div>
-              <p style={{ fontSize: 14, fontWeight: 600, color: selectedFile ? 'var(--success-dark)' : 'var(--text-2)', marginBottom: 4 }}>
-                {selectedFile ? selectedFile.name : 'Clique ou arraste o arquivo aqui'}
+              <p style={{ fontSize: 14, fontWeight: 600, color: selectedFiles.length ? 'var(--success-dark)' : 'var(--text-2)', marginBottom: 4 }}>
+                {selectedFiles.length ? `${selectedFiles.length} arquivo${selectedFiles.length !== 1 ? 's' : ''} selecionado${selectedFiles.length !== 1 ? 's' : ''}` : 'Clique ou arraste os arquivos aqui'}
               </p>
               <p style={{ fontSize: 12, color: 'var(--text-4)' }}>
-                {selectedFile ? formatSize(selectedFile.size) : 'Fotos, vídeos ou documentos'}
+                Pode selecionar vários · Fotos, vídeos ou documentos
               </p>
             </div>
+
+            {/* Lista de arquivos selecionados */}
+            {selectedFiles.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16, maxHeight: 180, overflowY: 'auto' }}>
+                {selectedFiles.map((f, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    background: 'var(--bg)', borderRadius: 9, padding: '8px 11px', gap: 8
+                  }}>
+                    <span className="truncate" style={{ fontSize: 12.5, color: 'var(--text-2)', flex: 1 }} title={f.name}>{f.name}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-4)', flexShrink: 0 }}>{formatSize(f.size)}</span>
+                    {!uploading && (
+                      <button type="button" onClick={() => removeFile(i)} className="btn btn-ghost btn-icon btn-sm" style={{ flexShrink: 0 }} title="Remover da lista">
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
               <Field label="Culto relacionado (opcional)">
@@ -262,21 +330,13 @@ export default function MediaPage() {
 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button type="button" className="btn btn-secondary" onClick={() => setShowUpload(false)} disabled={uploading}>Cancelar</button>
-              <button type="submit" className="btn btn-primary" disabled={uploading || !selectedFile}>
-                <Upload size={15} /> {uploading ? 'Enviando...' : 'Enviar arquivo'}
+              <button type="submit" className="btn btn-primary" disabled={uploading || !selectedFiles.length}>
+                <Upload size={15} /> {uploading ? 'Enviando...' : `Enviar ${selectedFiles.length || ''} arquivo${selectedFiles.length !== 1 ? 's' : ''}`}
               </button>
             </div>
           </form>
         </Modal>
       )}
     </div>
-  );
-}
-
-function CheckCircleMini() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-    </svg>
   );
 }

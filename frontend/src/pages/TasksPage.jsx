@@ -4,7 +4,8 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 import {
   Plus, X, Send, Trash2, CalendarDays, User,
-  Flag, MessageSquare, GripVertical, ChevronRight
+  Flag, MessageSquare, GripVertical, ChevronRight,
+  Paperclip, ExternalLink, Upload, FileText
 } from 'lucide-react';
 import { PageHeader, Card, Badge, Modal, Field, EmptyState, Avatar } from '../components/ui';
 
@@ -41,17 +42,26 @@ export default function TasksPage() {
   const [dragId, setDragId]         = useState(null);
   const [dragOver, setDragOver]     = useState(null);
   const [form, setForm] = useState({ title: '', description: '', assignedTo: '', dueDate: '', priority: 'media' });
+  const [mediaList, setMediaList]   = useState([]);
+  const [showAttach, setShowAttach] = useState(false);
+  const [attachTab, setAttachTab]   = useState('upload');
+  const [attachFile, setAttachFile] = useState(null);
+  const [attaching, setAttaching]   = useState(false);
+  const attachRef = useRef();
+  const tabStyle = (active) => ({ flex: 1, padding: '8px 10px', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1.5px solid ' + (active ? 'var(--primary)' : 'var(--border)'), background: active ? 'var(--primary)' : 'transparent', color: active ? 'white' : 'var(--text-3)' });
 
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
     try {
-      const [taskRes, usersRes] = await Promise.all([
+      const [taskRes, usersRes, mediaRes] = await Promise.all([
         api.get('/tasks'),
-        canManageTasks ? api.get('/users') : Promise.resolve({ data: [] })
+        canManageTasks ? api.get('/users') : Promise.resolve({ data: [] }),
+        api.get('/media').catch(() => ({ data: [] }))
       ]);
       setTasks(taskRes.data);
       setUsers(usersRes.data);
+      setMediaList(mediaRes.data);
     } catch { toast.error('Erro ao carregar tarefas'); }
     finally { setLoading(false); }
   }
@@ -91,6 +101,38 @@ export default function TasksPage() {
     if (!window.confirm('Remover esta tarefa?')) return;
     try { await api.delete(`/tasks/${id}`); toast.success('Tarefa removida'); setSelectedTask(null); loadData(); }
     catch { toast.error('Erro ao remover'); }
+  }
+
+  async function uploadAttachment(e) {
+    e.preventDefault();
+    if (!attachFile || !selectedTask) return;
+    const fd = new FormData();
+    fd.append('file', attachFile);
+    setAttaching(true);
+    try {
+      const res = await api.post(`/tasks/${selectedTask.id}/attachments/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setSelectedTask(prev => ({ ...prev, attachments: [...(prev.attachments || []), res.data] }));
+      setAttachFile(null); setShowAttach(false); toast.success('Anexo adicionado'); loadData();
+    } catch (err) { toast.error(err.response?.data?.error || 'Erro ao anexar'); }
+    finally { setAttaching(false); }
+  }
+
+  async function linkAttachment(mediaId) {
+    if (!selectedTask) return;
+    try {
+      const res = await api.post(`/tasks/${selectedTask.id}/attachments/link`, { mediaId });
+      setSelectedTask(prev => ({ ...prev, attachments: [...(prev.attachments || []), res.data] }));
+      setShowAttach(false); toast.success('Arquivo vinculado'); loadData();
+    } catch (err) { toast.error(err.response?.data?.error || 'Erro ao vincular'); }
+  }
+
+  async function removeAttachment(attId) {
+    if (!selectedTask) return;
+    try {
+      await api.delete(`/tasks/${selectedTask.id}/attachments/${attId}`);
+      setSelectedTask(prev => ({ ...prev, attachments: (prev.attachments || []).filter(a => a.id !== attId) }));
+      toast.success('Anexo removido'); loadData();
+    } catch { toast.error('Erro ao remover anexo'); }
   }
 
   async function openTask(task) {
@@ -299,6 +341,37 @@ export default function TasksPage() {
                 </div>
               )}
 
+              {/* Anexos */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    Anexos ({selectedTask.attachments?.length || 0})
+                  </p>
+                  <button className="btn btn-soft btn-sm" onClick={() => { setAttachTab('upload'); setAttachFile(null); setShowAttach(true); }}>
+                    <Paperclip size={13} /> Anexar
+                  </button>
+                </div>
+                {(selectedTask.attachments || []).length === 0 ? (
+                  <p style={{ fontSize: 13, color: 'var(--text-4)', fontStyle: 'italic' }}>Nenhum anexo</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {selectedTask.attachments.map(a => (
+                      <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg)', borderRadius: 10, padding: '9px 12px' }}>
+                        {a.thumbnailUrl
+                          ? <img src={a.thumbnailUrl} alt="" style={{ width: 34, height: 34, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                          : <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><FileText size={16} style={{ color: 'var(--text-4)' }} /></div>}
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div className="truncate" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }} title={a.name}>{a.name}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-4)' }}>{a.origem === 'repositorio' ? 'Do repositório' : 'Upload'}</div>
+                        </div>
+                        <a href={a.driveUrl} target="_blank" rel="noreferrer" className="btn btn-ghost btn-icon btn-sm" title="Abrir"><ExternalLink size={14} /></a>
+                        <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--danger)' }} onClick={() => removeAttachment(a.id)} title="Remover"><X size={14} /></button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Mudar status */}
               <div>
                 <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Mover para</p>
@@ -353,6 +426,51 @@ export default function TasksPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de anexar arquivo */}
+      {showAttach && selectedTask && (
+        <Modal title="Anexar arquivo" subtitle={selectedTask.title} onClose={() => setShowAttach(false)} maxWidth={460}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            <button type="button" onClick={() => setAttachTab('upload')} style={tabStyle(attachTab === 'upload')}>Upload novo</button>
+            <button type="button" onClick={() => setAttachTab('repo')} style={tabStyle(attachTab === 'repo')}>Do repositório</button>
+          </div>
+          {attachTab === 'upload' ? (
+            <form onSubmit={uploadAttachment}>
+              <div onClick={() => attachRef.current?.click()} style={{ border: `2px dashed ${attachFile ? 'var(--success)' : 'var(--border)'}`, borderRadius: 12, padding: '24px', textAlign: 'center', cursor: 'pointer', background: attachFile ? 'var(--success-bg)' : 'var(--bg)', marginBottom: 16 }}>
+                <input ref={attachRef} type="file" style={{ display: 'none' }} onChange={e => setAttachFile(e.target.files[0])} />
+                <Upload size={22} style={{ color: attachFile ? 'var(--success)' : 'var(--text-4)', marginBottom: 8 }} />
+                <p style={{ fontSize: 13.5, fontWeight: 600, color: attachFile ? 'var(--success-dark)' : 'var(--text-2)' }}>{attachFile ? attachFile.name : 'Clique para escolher um arquivo'}</p>
+              </div>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAttach(false)} disabled={attaching}>Cancelar</button>
+                <button type="submit" className="btn btn-primary" disabled={attaching || !attachFile}>{attaching ? 'Enviando...' : 'Anexar'}</button>
+              </div>
+            </form>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 340, overflowY: 'auto' }}>
+              {mediaList.length === 0 ? (
+                <p style={{ fontSize: 13, color: 'var(--text-4)', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>Nenhum arquivo no repositório</p>
+              ) : mediaList.map(m => {
+                const jaAnexado = (selectedTask.attachments || []).some(a => a.mediaId === m.id);
+                return (
+                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg)', borderRadius: 10, padding: '9px 12px' }}>
+                    {m.thumbnailUrl
+                      ? <img src={m.thumbnailUrl} alt="" style={{ width: 34, height: 34, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                      : <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><FileText size={16} style={{ color: 'var(--text-4)' }} /></div>}
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div className="truncate" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }} title={m.name}>{m.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-4)' }}>{m.folderName || 'Geral'}</div>
+                    </div>
+                    <button className="btn btn-soft btn-sm" disabled={jaAnexado} onClick={() => linkAttachment(m.id)}>
+                      {jaAnexado ? 'Anexado' : 'Vincular'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Modal>
       )}
     </div>
   );

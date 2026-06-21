@@ -1,9 +1,23 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
+const multer = require('multer');
 const { readDB, writeDB } = require('../config/database');
 const { authMiddleware, requireRole } = require('../middleware/auth');
+const driveService = require('../services/drive');
 
 const router = express.Router();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 100 * 1024 * 1024 }
+});
+
+// Quem pode mexer nos anexos de uma tarefa
+function podeAnexar(task, user) {
+  return ['admin', 'pastoral'].includes(user.role)
+    || task.assignedTo === user.id
+    || task.createdBy === user.id;
+}
 
 const VALID_STATUS = ['pendente', 'em_andamento', 'aguardando_revisao', 'concluido'];
 const VALID_PRIORITY = ['baixa', 'media', 'alta', 'urgente'];
@@ -75,6 +89,7 @@ router.post('/', authMiddleware, requireRole('admin', 'pastoral'), (req, res) =>
     dueDate: dueDate || null,
     relatedScheduleId: relatedScheduleId || null,
     comments: [],
+    attachments: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -176,6 +191,99 @@ router.delete('/:id', authMiddleware, requireRole('admin'), (req, res) => {
   db.tasks.splice(idx, 1);
   writeDB(db);
   res.json({ message: 'Tarefa removida' });
+});
+
+// POST /api/tasks/:id/attachments/link — vincula um arquivo ja existente no repositorio
+router.post('/:id/attachments/link', authMiddleware, (req, res) => {
+  const { mediaId } = req.body;
+  if (!mediaId) return res.status(400).json({ error: 'mediaId e obrigatorio' });
+
+  const db = readDB();
+  const task = db.tasks.find(t => t.id === req.params.id);
+  if (!task) return res.status(404).json({ error: 'Tarefa nao encontrada' });
+  if (!podeAnexar(task, req.user)) return res.status(403).json({ error: 'Acesso negado' });
+
+  const arquivo = (db.media || []).find(m => m.id === mediaId);
+  if (!arquivo) return res.status(404).json({ error: 'Arquivo nao encontrado no repositorio' });
+
+  if (!task.attachments) task.attachments = [];
+  if (task.attachments.some(a => a.mediaId === mediaId)) {
+    return res.status(409).json({ error: 'Este arquivo ja esta anexado' });
+  }
+
+  const anexo = {
+    id: uuidv4(),
+    origem: 'repositorio',
+    mediaId: arquivo.id,
+    name: arquivo.name,
+    driveUrl: arquivo.driveUrl,
+    thumbnailUrl: arquivo.thumbnailUrl || null,
+    mimeType: arquivo.mimeType,
+    type: arquivo.type,
+    addedBy: req.user.name,
+    createdAt: new Date().toISOString()
+  };
+  task.attachments.push(anexo);
+  task.updatedAt = new Date().toISOString();
+  writeDB(db);
+  res.status(201).json(anexo);
+});
+
+// POST /api/tasks/:id/attachments/upload — envia um arquivo novo direto para a tarefa
+router.post('/:id/attachments/upload', authMiddleware, upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+
+  const db = readDB();
+  const task = db.tasks.find(t => t.id === req.params.id);
+  if (!task) return res.status(404).json({ error: 'Tarefa nao encontrada' });
+  if (!podeAnexar(task, req.user)) return res.status(403).json({ error: 'Acesso negado' });
+
+  let folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  try { folderId = await driveService.getOrCreateFolder('Tarefas', folderId); }
+  catch (e) { console.error('Erro ao criar pasta Tarefas:', e.message); }
+
+  try {
+    const driveFile = await driveService.uploadFile(req.file, folderId);
+    if (!task.attachments) task.attachments = [];
+    const anexo = {
+      id: uuidv4(),
+      origem: 'upload',
+      driveFileId: driveFile.id,
+      name: req.file.originalname,
+      driveUrl: driveFile.webViewLink,
+      thumbnailUrl: driveFile.thumbnailLink || null,
+      mimeType: req.file.mimetype,
+      type: /jpeg|jpg|png|gif/i.test(req.file.originalname) ? 'foto'
+          : /mp4|mov|avi|mkv|webm/i.test(req.file.originalname) ? 'video' : 'documento',
+      size: req.file.size,
+      addedBy: req.user.name,
+      createdAt: new Date().toISOString()
+    };
+    task.attachments.push(anexo);
+    task.updatedAt = new Date().toISOString();
+    writeDB(db);
+    res.status(201).json(anexo);
+  } catch (err) {
+    console.error('Erro no upload do anexo:', err);
+    res.status(500).json({ error: 'Erro ao enviar para o Google Drive', details: err.message });
+  }
+});
+
+// DELETE /api/tasks/:id/attachments/:attId — remove o vinculo do anexo (Drive preservado)
+router.delete('/:id/attachments/:attId', authMiddleware, (req, res) => {
+  const db = readDB();
+  const task = db.tasks.find(t => t.id === req.params.id);
+  if (!task) return res.status(404).json({ error: 'Tarefa nao encontrada' });
+  if (!podeAnexar(task, req.user)) return res.status(403).json({ error: 'Acesso negado' });
+
+  if (!task.attachments) task.attachments = [];
+  const antes = task.attachments.length;
+  task.attachments = task.attachments.filter(a => a.id !== req.params.attId);
+  if (task.attachments.length === antes) return res.status(404).json({ error: 'Anexo nao encontrado' });
+
+  task.updatedAt = new Date().toISOString();
+  writeDB(db);
+  res.json({ message: 'Anexo removido' });
 });
 
 module.exports = router;

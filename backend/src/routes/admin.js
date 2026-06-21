@@ -1,6 +1,7 @@
 const express = require('express');
 const { authMiddleware, requireRole } = require('../middleware/auth');
 const { runBackup } = require('../services/backup');
+const { runCleanup, previewLimpeza } = require('../services/cleanup');
 const { readDBAsync } = require('../config/database');
 
 const router = express.Router();
@@ -27,6 +28,26 @@ router.post('/backup', authMiddleware, requireRole('admin'), async (req, res) =>
     res.json({ message: 'Backup executado com sucesso.' });
   } catch (err) {
     res.status(500).json({ error: 'Erro ao executar backup: ' + err.message });
+  }
+});
+
+// GET /api/admin/cleanup/preview — mostra quais arquivos seriam removidos (somente admin)
+router.get('/cleanup/preview', authMiddleware, requireRole('admin'), async (req, res) => {
+  try {
+    const preview = await previewLimpeza();
+    res.json(preview);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao gerar previa: ' + err.message });
+  }
+});
+
+// POST /api/admin/cleanup — executa a limpeza dos arquivos com mais de 60 dias (somente admin)
+router.post('/cleanup', authMiddleware, requireRole('admin'), async (req, res) => {
+  try {
+    const removidos = await runCleanup();
+    res.json({ message: `Limpeza concluida. ${removidos} arquivo(s) removido(s) do app.`, removidos });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao executar limpeza: ' + err.message });
   }
 });
 

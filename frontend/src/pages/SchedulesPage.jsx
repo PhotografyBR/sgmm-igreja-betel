@@ -527,10 +527,14 @@ function ScheduleCard({ s, user, users = [], canManage, onEdit, onDelete, onConf
 
 function ModalWhatsApp({ escala, users, onClose }) {
   const FRONTEND_URL = 'https://sgmm-igreja-betel-production.up.railway.app';
+  const [tipo, setTipo] = useState('convocacao'); // 'convocacao' | 'lembrete'
   const dataFormatada = new Date(escala.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   function gerarMensagem(nome, funcao, token) {
     const link = FRONTEND_URL + '/api/schedules/confirmar/' + token;
+    if (tipo === 'lembrete') {
+      return `Oi, ${nome}! Passando pra lembrar que voce esta na escala:\n\n*${escala.title}*\n${dataFormatada}${escala.time ? ' as ' + escala.time : ''}\nFuncao: *${funcao}*\n\nSe ainda nao confirmou, da uma olhada aqui:\n${link}\n\nQualquer coisa me avisa. Deus abencoe!`;
+    }
     return `Ola, ${nome}! Voce foi escalado(a) para:\n\n*${escala.title}*\n${dataFormatada}${escala.time ? ' as ' + escala.time : ''}\nFuncao: *${funcao}*\n\nConfirme sua presenca:\n${link}`;
   }
 
@@ -545,13 +549,35 @@ function ModalWhatsApp({ escala, users, onClose }) {
     phone: (users.find(u => u.id === a.userId) || {}).phone || ''
   }));
 
+  const tabBtn = (val, label) => (
+    <button
+      type="button"
+      onClick={() => setTipo(val)}
+      style={{
+        flex: 1, padding: '8px 10px', borderRadius: 9, fontSize: 13, fontWeight: 700,
+        cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s',
+        border: '1.5px solid ' + (tipo === val ? '#25D366' : 'var(--border)'),
+        background: tipo === val ? '#25D366' : 'transparent',
+        color: tipo === val ? 'white' : 'var(--text-3)'
+      }}
+    >
+      {label}
+    </button>
+  );
+
   return (
     <Modal title="Avisar pelo WhatsApp" subtitle={escala.title} onClose={onClose} maxWidth={480}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+        {tabBtn('convocacao', 'Convocacao')}
+        {tabBtn('lembrete', 'Lembrete')}
+      </div>
       <div style={{
         background: 'var(--border-soft)', borderRadius: 10, padding: '10px 14px',
         fontSize: 13, color: 'var(--text-3)', marginBottom: 18
       }}>
-        Clique em cada voluntário para abrir o WhatsApp com a mensagem e link de confirmação prontos.
+        {tipo === 'lembrete'
+          ? 'Mensagem de lembrete pronta. Clique em cada voluntario para abrir o WhatsApp.'
+          : 'Mensagem de convocacao com link de confirmacao. Clique em cada voluntario para abrir o WhatsApp.'}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {escalados.map((a, i) => {
@@ -575,7 +601,7 @@ function ModalWhatsApp({ escala, users, onClose }) {
                 className="btn btn-sm"
                 style={{ background: temPhone ? '#25D366' : 'var(--border)', color: 'white', flexShrink: 0 }}
               >
-                <Phone size={13} /> Enviar
+                <Phone size={13} /> {tipo === 'lembrete' ? 'Lembrar' : 'Enviar'}
               </button>
             </div>
           );
@@ -585,4 +611,3 @@ function ModalWhatsApp({ escala, users, onClose }) {
     </Modal>
   );
 }
-
