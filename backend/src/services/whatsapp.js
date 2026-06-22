@@ -81,7 +81,7 @@ async function notificarEscalado({ nome, phone, titulo, data, hora, funcao, urlS
   const funcaoTexto = funcao ? `\n📌 *Função:* ${funcao}` : '';
 
   // Link direto de confirmação (sem precisar de login)
-  const baseUrl = urlSistema || 'https://sgmm-igreja-betel-production.up.railway.app';
+  const baseUrl = urlSistema || 'https://sgmm-igreja-betel.onrender.com';
   const linkConfirmacao = confirmToken
     ? `\n\n👇 *Confirme sua presença pelo link abaixo:*\n${baseUrl}/api/schedules/confirmar/${confirmToken}`
     : `\n\n🔗 Acesse o sistema: ${baseUrl}`;

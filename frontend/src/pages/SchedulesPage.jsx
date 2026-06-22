@@ -526,7 +526,7 @@ function ScheduleCard({ s, user, users = [], canManage, onEdit, onDelete, onConf
 /* ─── Modal WhatsApp ─────────────────────────────────────────────────────── */
 
 function ModalWhatsApp({ escala, users, onClose }) {
-  const FRONTEND_URL = 'https://sgmm-igreja-betel-production.up.railway.app';
+  const FRONTEND_URL = window.location.origin;
   const [tipo, setTipo] = useState('convocacao'); // 'convocacao' | 'lembrete'
   const dataFormatada = new Date(escala.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 

@@ -82,7 +82,7 @@ router.post('/', authMiddleware, requireRole('admin', 'secretaria'), (req, res) 
 
     const voluntario = db.users.find(u => u.id === a.userId);
     if (voluntario?.phone) {
-      const urlSistema = process.env.FRONTEND_URL || 'https://sgmm-igreja-betel-production.up.railway.app';
+      const urlSistema = process.env.FRONTEND_URL || 'https://sgmm-igreja-betel.onrender.com';
       notificarEscalado({
         nome: voluntario.name,
         phone: voluntario.phone,
