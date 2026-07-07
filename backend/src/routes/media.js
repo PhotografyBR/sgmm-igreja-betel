@@ -2,7 +2,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const multer = require('multer');
 const { readDB, writeDB } = require('../config/database');
-const { authMiddleware, requireRole } = require('../middleware/auth');
+const { authMiddleware, requirePermission } = require('../middleware/auth');
 const driveService = require('../services/drive');
 
 const router = express.Router();
@@ -65,7 +65,7 @@ async function processarArquivo(file, { scheduleId, description, folderId, folde
 }
 
 // POST /api/media/upload — aceita 1 ou varios arquivos (campo "files"; "file" mantido por compatibilidade)
-router.post('/upload', authMiddleware, upload.array('files', 30), async (req, res) => {
+router.post('/upload', authMiddleware, requirePermission('media.upload'), upload.array('files', 30), async (req, res) => {
   // Compatibilidade: se vier no campo "file" (singular), o multer.any nao pega,
   // entao aceitamos tanto req.files quanto req.file.
   let arquivos = req.files && req.files.length ? req.files : (req.file ? [req.file] : []);
@@ -131,7 +131,7 @@ router.post('/upload', authMiddleware, upload.array('files', 30), async (req, re
 });
 
 // PATCH /api/media/:id/permanent — marca/desmarca arquivo como permanente (nao some na limpeza)
-router.patch('/:id/permanent', authMiddleware, requireRole('admin', 'pastoral', 'editor'), (req, res) => {
+router.patch('/:id/permanent', authMiddleware, requirePermission('media.upload'), (req, res) => {
   const db = readDB();
   if (!db.media) db.media = [];
   const item = db.media.find(m => m.id === req.params.id);
@@ -142,7 +142,7 @@ router.patch('/:id/permanent', authMiddleware, requireRole('admin', 'pastoral', 
   res.json({ id: item.id, permanent: item.permanent });
 });
 
-router.delete('/:id', authMiddleware, requireRole('admin', 'pastoral', 'editor'), async (req, res) => {
+router.delete('/:id', authMiddleware, requirePermission('media.upload'), async (req, res) => {
   const db = readDB();
   if (!db.media) db.media = [];
   const idx = db.media.findIndex(m => m.id === req.params.id);

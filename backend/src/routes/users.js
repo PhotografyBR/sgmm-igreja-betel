@@ -12,7 +12,7 @@ router.get('/', authMiddleware, requirePermission('users.view', 'users.manage'),
   res.json(users);
 });
 
-router.get('/voluntarios', authMiddleware, requireRole('admin', 'secretaria'), (req, res) => {
+router.get('/voluntarios', authMiddleware, requirePermission('users.view', 'users.manage', 'schedules.manage'), (req, res) => {
   const db = readDB();
   const lista = db.users
     .filter(u => ['voluntario', 'admin', 'pastoral', 'secretaria', 'editor'].includes(u.role))
@@ -30,12 +30,15 @@ router.get('/equipe', authMiddleware, (req, res) => {
   res.json(lista);
 });
 
-router.post('/', authMiddleware, requireRole('admin'), async (req, res) => {
+router.post('/', authMiddleware, requirePermission('users.manage'), async (req, res) => {
   const { name, email, password, role, phone, groupId } = req.body;
   if (!name || !email || !password || !role)
     return res.status(400).json({ error: 'Nome, email, senha e perfil sao obrigatorios' });
   const validRoles = ['admin', 'pastoral', 'secretaria', 'voluntario', 'editor'];
   if (!validRoles.includes(role)) return res.status(400).json({ error: 'Perfil invalido' });
+  // So o admin pode criar outra conta admin
+  if (role === 'admin' && req.user.role !== 'admin')
+    return res.status(403).json({ error: 'Apenas o admin pode criar contas admin' });
   const db = readDB();
   if (db.users.find(u => u.email === email.toLowerCase())) return res.status(400).json({ error: 'Email ja cadastrado' });
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -51,13 +54,16 @@ router.post('/', authMiddleware, requireRole('admin'), async (req, res) => {
   res.status(201).json({ id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role, groupId: newUser.groupId, phone: newUser.phone });
 });
 
-router.put('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
+router.put('/:id', authMiddleware, requirePermission('users.manage'), async (req, res) => {
   const { name, email, role, phone, password, groupId } = req.body;
   const validRoles = ['admin', 'pastoral', 'secretaria', 'voluntario', 'editor'];
   if (role && !validRoles.includes(role)) return res.status(400).json({ error: 'Perfil invalido' });
   const db = readDB();
   const idx = db.users.findIndex(u => u.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Usuario nao encontrado' });
+  // Contas admin (e promocao a admin) so podem ser mexidas por outro admin
+  if ((db.users[idx].role === 'admin' || role === 'admin') && req.user.role !== 'admin')
+    return res.status(403).json({ error: 'Apenas o admin pode alterar contas admin' });
   if (name) db.users[idx].name = name;
   if (email) db.users[idx].email = email.toLowerCase();
   if (role) db.users[idx].role = role;
@@ -75,11 +81,13 @@ router.put('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
   res.json({ message: 'Usuario atualizado' });
 });
 
-router.delete('/:id', authMiddleware, requireRole('admin'), (req, res) => {
+router.delete('/:id', authMiddleware, requirePermission('users.manage'), (req, res) => {
   if (req.params.id === req.user.id) return res.status(400).json({ error: 'Voce nao pode remover sua propria conta' });
   const db = readDB();
   const idx = db.users.findIndex(u => u.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Usuario nao encontrado' });
+  if (db.users[idx].role === 'admin' && req.user.role !== 'admin')
+    return res.status(403).json({ error: 'Apenas o admin pode remover contas admin' });
   db.users.splice(idx, 1);
   writeDB(db);
   res.json({ message: 'Usuario removido' });

@@ -18,7 +18,7 @@ function formatSize(bytes) {
 }
 
 export default function MediaPage() {
-  const { isAdmin } = useAuth();
+  const { canUploadMedia } = useAuth();
   const [media, setMedia]           = useState([]);
   const [schedules, setSchedules]   = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -123,11 +123,11 @@ export default function MediaPage() {
       <PageHeader
         title="Repositório de Mídia"
         subtitle={`${media.length} arquivo${media.length !== 1 ? 's' : ''} · Armazenados no Google Drive`}
-        actions={
+        actions={canUploadMedia && (
           <button className="btn btn-primary" onClick={() => setShowUpload(true)}>
             <Upload size={16} /> Upload de arquivos
           </button>
-        }
+        )}
       />
 
       {/* Filtros */}
@@ -215,7 +215,7 @@ export default function MediaPage() {
                         <a href={f.driveUrl} target="_blank" rel="noreferrer" className="btn btn-soft btn-sm" style={{ flex: 1, textAlign: 'center' }}>
                           <ExternalLink size={12} /> Abrir
                         </a>
-                        {isAdmin && (
+                        {canUploadMedia && (
                           <button
                             className="btn btn-soft btn-sm btn-icon"
                             onClick={() => togglePermanent(f)}
@@ -225,7 +225,7 @@ export default function MediaPage() {
                             <Star size={13} fill={f.permanent ? '#F59E0B' : 'none'} />
                           </button>
                         )}
-                        {isAdmin && (
+                        {canUploadMedia && (
                           <button className="btn btn-danger-soft btn-sm btn-icon" onClick={() => deleteMedia(f.id)} title="Remover">
                             <Trash2 size={13} />
                           </button>

@@ -1,7 +1,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { readDB, writeDB } = require('../config/database');
-const { authMiddleware, requireRole } = require('../middleware/auth');
+const { authMiddleware, requireRole, requirePermission } = require('../middleware/auth');
 const { notificarEscalado, notificarLider } = require('../services/whatsapp');
 
 const router = express.Router();
@@ -38,8 +38,8 @@ router.get('/:id', authMiddleware, (req, res) => {
   res.json(schedule);
 });
 
-// POST /api/schedules - criar escala (admin/secretaria)
-router.post('/', authMiddleware, requireRole('admin', 'secretaria'), (req, res) => {
+// POST /api/schedules - criar escala (quem tem schedules.manage)
+router.post('/', authMiddleware, requirePermission('schedules.manage'), (req, res) => {
   const { title, date, time, type, assignments, notes } = req.body;
 
   if (!title || !date || !type) {
@@ -100,8 +100,8 @@ router.post('/', authMiddleware, requireRole('admin', 'secretaria'), (req, res) 
   res.status(201).json(newSchedule);
 });
 
-// PUT /api/schedules/:id - editar escala (admin/secretaria)
-router.put('/:id', authMiddleware, requireRole('admin', 'secretaria'), (req, res) => {
+// PUT /api/schedules/:id - editar escala (quem tem schedules.manage)
+router.put('/:id', authMiddleware, requirePermission('schedules.manage'), (req, res) => {
   const db = readDB();
   const idx = db.schedules.findIndex(s => s.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Escala não encontrada' });

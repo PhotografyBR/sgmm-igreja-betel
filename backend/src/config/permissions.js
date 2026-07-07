@@ -38,7 +38,7 @@ const ROLE_DEFAULTS = {
   pastoral: [
     'schedules.view',
     'tasks.view', 'tasks.manage',
-    'media.view',
+    'media.view', 'media.upload',
     'reports.view',
     'users.view',
   ],
