@@ -2,7 +2,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const multer = require('multer');
 const { readDB, writeDB } = require('../config/database');
-const { authMiddleware, requireRole } = require('../middleware/auth');
+const { authMiddleware, requireRole, requirePermission } = require('../middleware/auth');
 const driveService = require('../services/drive');
 
 const router = express.Router();
@@ -65,8 +65,8 @@ router.get('/:id', authMiddleware, (req, res) => {
   res.json(task);
 });
 
-// POST /api/tasks - criar tarefa (admin/pastoral)
-router.post('/', authMiddleware, requireRole('admin', 'pastoral'), (req, res) => {
+// POST /api/tasks - criar tarefa (quem tem permissão tasks.manage)
+router.post('/', authMiddleware, requirePermission('tasks.manage'), (req, res) => {
   const { title, description, assignedTo, dueDate, priority, relatedScheduleId } = req.body;
 
   if (!title || !assignedTo) {
