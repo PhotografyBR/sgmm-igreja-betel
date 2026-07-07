@@ -56,7 +56,7 @@ export default function TasksPage() {
     try {
       const [taskRes, usersRes, mediaRes] = await Promise.all([
         api.get('/tasks'),
-        canManageTasks ? api.get('/users') : Promise.resolve({ data: [] }),
+        canManageTasks ? api.get('/users/equipe').catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
         api.get('/media').catch(() => ({ data: [] }))
       ]);
       setTasks(taskRes.data);
