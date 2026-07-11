@@ -7,13 +7,13 @@ import { mobileItems, visibleSections } from './navConfig';
 // Barra de navegação inferior do celular.
 // Mostra até 4 atalhos principais + botão "Mais" que abre todas as seções.
 export default function BottomNav() {
-  const { can, user, logout } = useAuth();
+  const { can, user, logout, isAdmin } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const primary = mobileItems(can).slice(0, 4);
-  const allSections = visibleSections(can);
+  const primary = mobileItems(can, isAdmin).slice(0, 4);
+  const allSections = visibleSections(can, isAdmin);
 
   function go(to) {
     setSheetOpen(false);

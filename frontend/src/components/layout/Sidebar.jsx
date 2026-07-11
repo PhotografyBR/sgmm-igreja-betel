@@ -9,12 +9,12 @@ function getColor(name = '') { return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_
 function initials(name = '') { return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase(); }
 
 export default function Sidebar() {
-  const { user, logout, can } = useAuth();
+  const { user, logout, can, isAdmin } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
 
   const color = getColor(user?.name);
-  const sections = visibleSections(can);
+  const sections = visibleSections(can, isAdmin);
 
   const S = {
     sidebar: {
