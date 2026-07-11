@@ -12,6 +12,7 @@ import GroupsPage from './pages/GroupsPage';
 import ProfilePage from './pages/ProfilePage';
 import MinhasEscalasPage from './pages/MinhasEscalasPage';
 import RelatoriosPage from './pages/RelatoriosPage';
+import LogsPage from './pages/LogsPage';
 
 function ProtectedRoute({ children, allowedRoles, requiredPermission }) {
   const { user, loading, can } = useAuth();
@@ -75,6 +76,11 @@ function AppRoutes() {
         <Route path="minhas-escalas" element={
           <ProtectedRoute requiredPermission="myschedules.view">
             <MinhasEscalasPage />
+          </ProtectedRoute>
+        } />
+        <Route path="logs" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <LogsPage />
           </ProtectedRoute>
         } />
         <Route path="perfil" element={<ProfilePage />} />
