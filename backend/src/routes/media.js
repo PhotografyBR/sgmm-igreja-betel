@@ -74,11 +74,25 @@ router.post('/upload', authMiddleware, requirePermission('media.upload'), upload
   const { scheduleId, description } = req.body;
   const db = readDB();
 
-  // Voluntario/secretaria so podem fazer upload em escalas que participaram
-  if (!FULL_ACCESS_ROLES.includes(req.user.role) && scheduleId) {
+  // Voluntario/secretaria: upload restrito
+  //  - obrigatorio escolher um culto (sem acesso a pasta Geral)
+  //  - precisa estar escalado no culto
+  //  - so ate 7 dias apos a data do culto
+  if (!FULL_ACCESS_ROLES.includes(req.user.role)) {
+    if (!scheduleId) {
+      return res.status(403).json({ error: 'Selecione o culto relacionado — somente a lideranca envia arquivos gerais' });
+    }
     const schedule = db.schedules?.find(s => s.id === scheduleId);
-    const estaEscalado = schedule?.assignments?.some(a => a.userId === req.user.id);
+    if (!schedule) return res.status(404).json({ error: 'Culto nao encontrado' });
+    const estaEscalado = schedule.assignments?.some(a => a.userId === req.user.id);
     if (!estaEscalado) return res.status(403).json({ error: 'Voce nao estava escalado neste evento' });
+
+    const dataCulto = new Date(schedule.date + 'T12:00:00');
+    const hoje = new Date(); hoje.setHours(12, 0, 0, 0);
+    const diffDias = Math.round((hoje - dataCulto) / (24 * 60 * 60 * 1000));
+    if (diffDias < 0 || diffDias > 7) {
+      return res.status(403).json({ error: 'O envio de arquivos so e permitido do dia do culto ate 7 dias depois' });
+    }
   }
 
   let folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
@@ -155,3 +169,4 @@ router.delete('/:id', authMiddleware, requirePermission('media.upload'), async (
 });
 
 module.exports = router;
+
