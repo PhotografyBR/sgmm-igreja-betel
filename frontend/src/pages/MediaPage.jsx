@@ -17,14 +17,24 @@ function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+const FULL_ACCESS_ROLES = ['admin', 'pastoral', 'editor'];
+const DIA_MS = 24 * 60 * 60 * 1000;
+
+function mesAtual() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 export default function MediaPage() {
-  const { canUploadMedia } = useAuth();
+  const { user, canUploadMedia } = useAuth();
+  const fullAccess = FULL_ACCESS_ROLES.includes(user?.role);
   const [media, setMedia]           = useState([]);
   const [schedules, setSchedules]   = useState([]);
   const [loading, setLoading]       = useState(true);
   const [uploading, setUploading]   = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [filterSchedule, setFilterSchedule] = useState('');
+  const [filterMonth, setFilterMonth]       = useState(mesAtual());
   const [filterType, setFilterType]         = useState('');
   const [showUpload, setShowUpload]         = useState(false);
   const [uploadForm, setUploadForm] = useState({ scheduleId: '', description: '' });
@@ -69,6 +79,7 @@ export default function MediaPage() {
   async function handleUpload(e) {
     e.preventDefault();
     if (!selectedFiles.length) return toast.error('Selecione ao menos um arquivo');
+    if (!fullAccess && !uploadForm.scheduleId) return toast.error('Selecione o culto relacionado ao arquivo');
     const formData = new FormData();
     selectedFiles.forEach(f => formData.append('files', f));
     if (uploadForm.scheduleId) formData.append('scheduleId', uploadForm.scheduleId);
@@ -109,6 +120,36 @@ export default function MediaPage() {
     if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
   }
 
+  // Cultos do mês selecionado no filtro (padrão: mês atual)
+  const cultosDoMes = schedules
+    .filter(s => (s.date || '').startsWith(filterMonth))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+
+  // Se o culto selecionado saiu do mês em exibição, limpa o filtro
+  useEffect(() => {
+    if (filterSchedule && !cultosDoMes.some(s => s.id === filterSchedule)) {
+      setFilterSchedule('');
+    }
+  }, [filterMonth, schedules]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cultos disponíveis para upload:
+  //  - liderança (admin/pastoral/editor): todos
+  //  - demais: apenas cultos em que está escalado, do dia do culto até 7 dias depois
+  const cultosUpload = fullAccess ? schedules : schedules.filter(s => {
+    if (!s.assignments?.some(a => a.userId === user?.id)) return false;
+    const dataCulto = new Date(s.date + 'T12:00:00');
+    const hoje = new Date(); hoje.setHours(12, 0, 0, 0);
+    const diffDias = Math.round((hoje - dataCulto) / DIA_MS);
+    return diffDias >= 0 && diffDias <= 7;
+  });
+
+  // Se só existe um culto possível para o voluntário, já deixa selecionado
+  useEffect(() => {
+    if (showUpload && !fullAccess && cultosUpload.length === 1) {
+      setUploadForm(p => (p.scheduleId ? p : { ...p, scheduleId: cultosUpload[0].id }));
+    }
+  }, [showUpload]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const grouped = media.reduce((acc, m) => {
     const folder = m.folderName || 'Geral';
     if (!acc[folder]) acc[folder] = [];
@@ -132,9 +173,16 @@ export default function MediaPage() {
 
       {/* Filtros */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 22, flexWrap: 'wrap' }}>
+        <input
+          type="month"
+          value={filterMonth}
+          onChange={e => setFilterMonth(e.target.value || mesAtual())}
+          style={SEL}
+          title="Mês dos cultos exibidos no filtro"
+        />
         <select value={filterSchedule} onChange={e => setFilterSchedule(e.target.value)} style={SEL}>
-          <option value="">Todos os cultos</option>
-          {schedules.map(s => (
+          <option value="">Todos os arquivos</option>
+          {cultosDoMes.map(s => (
             <option key={s.id} value={s.id}>
               {s.title} ({new Date(s.date + 'T12:00:00').toLocaleDateString('pt-BR')})
             </option>
@@ -297,16 +345,23 @@ export default function MediaPage() {
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
-              <Field label="Culto relacionado (opcional)">
-                <select value={uploadForm.scheduleId} onChange={e => setUploadForm(p => ({ ...p, scheduleId: e.target.value }))}
+              <Field label={fullAccess ? 'Culto relacionado (opcional)' : 'Culto relacionado'}>
+                <select required={!fullAccess} value={uploadForm.scheduleId} onChange={e => setUploadForm(p => ({ ...p, scheduleId: e.target.value }))}
                   style={{ width: '100%', padding: '10px 13px', borderRadius: 10, border: '1px solid var(--border-soft)', fontSize: 14, background: 'var(--bg-card)', outline: 'none' }}>
-                  <option value="">Arquivo geral</option>
-                  {schedules.map(s => (
+                  {fullAccess
+                    ? <option value="">Arquivo geral</option>
+                    : <option value="">Selecione o culto...</option>}
+                  {cultosUpload.map(s => (
                     <option key={s.id} value={s.id}>
                       {s.title} ({new Date(s.date + 'T12:00:00').toLocaleDateString('pt-BR')})
                     </option>
                   ))}
                 </select>
+                {!fullAccess && (
+                  <p style={{ fontSize: 11.5, color: 'var(--text-4)', marginTop: 5 }}>
+                    Aparecem apenas os cultos em que você esteve escalado nos últimos 7 dias.
+                  </p>
+                )}
               </Field>
               <Field label="Descrição">
                 <input value={uploadForm.description}
