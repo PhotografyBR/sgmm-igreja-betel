@@ -11,6 +11,7 @@ const taskRoutes = require('./routes/tasks');
 const mediaRoutes = require('./routes/media');
 const notificationRoutes = require('./routes/notifications');
 const adminRoutes = require('./routes/admin');
+const logsRoutes = require('./routes/logs');
 const { startBackupScheduler } = require('./services/backup');
 const { startCleanupScheduler } = require('./services/cleanup');
 
@@ -34,6 +35,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/logs', logsRoutes);
 
 // Servir front-end em produção
 if (process.env.NODE_ENV === 'production') {
