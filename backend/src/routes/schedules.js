@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const { readDB, writeDB } = require('../config/database');
 const { authMiddleware, requireRole, requirePermission } = require('../middleware/auth');
 const { notificarEscalado, notificarLider } = require('../services/whatsapp');
+const { appendLog } = require('../services/activityLog');
 
 const router = express.Router();
 
@@ -96,6 +97,7 @@ router.post('/', authMiddleware, requirePermission('schedules.manage'), (req, re
     }
   });
 
+  appendLog(db, req.user, 'escala_criada', `${newSchedule.title} (${newSchedule.date})`);
   writeDB(db);
   res.status(201).json(newSchedule);
 });
@@ -127,6 +129,7 @@ router.put('/:id', authMiddleware, requirePermission('schedules.manage'), (req, 
   }
   db.schedules[idx].updatedAt = new Date().toISOString();
 
+  appendLog(db, req.user, 'escala_editada', `${db.schedules[idx].title} (${db.schedules[idx].date})`);
   writeDB(db);
   res.json(db.schedules[idx]);
 });
@@ -137,7 +140,9 @@ router.delete('/:id', authMiddleware, requireRole('admin'), (req, res) => {
   const idx = db.schedules.findIndex(s => s.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Escala não encontrada' });
 
+  const escalaRemovida = `${db.schedules[idx].title} (${db.schedules[idx].date})`;
   db.schedules.splice(idx, 1);
+  appendLog(db, req.user, 'escala_excluida', escalaRemovida);
   writeDB(db);
   res.json({ message: 'Escala removida' });
 });

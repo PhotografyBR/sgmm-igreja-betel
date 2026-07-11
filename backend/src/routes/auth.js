@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { readDB, writeDB } = require('../config/database');
 const { authMiddleware } = require('../middleware/auth');
 const { resolvePermissions } = require('../config/permissions');
+const { logActivity } = require('../services/activityLog');
 
 const router = express.Router();
 
@@ -32,6 +33,8 @@ router.post('/login', async (req, res) => {
     process.env.JWT_SECRET || 'sgmm_secret_key',
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
+
+  logActivity({ id: user.id, name: user.name, role: user.role }, 'login');
 
   res.json({
     token,

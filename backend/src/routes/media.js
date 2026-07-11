@@ -4,6 +4,7 @@ const multer = require('multer');
 const { readDB, writeDB } = require('../config/database');
 const { authMiddleware, requirePermission } = require('../middleware/auth');
 const driveService = require('../services/drive');
+const { appendLog } = require('../services/activityLog');
 
 const router = express.Router();
 
@@ -140,6 +141,7 @@ router.post('/upload', authMiddleware, requirePermission('media.upload'), upload
     });
   });
 
+  appendLog(db, req.user, 'upload', `${enviados.length} arquivo(s) em "${folderName}"`);
   writeDB(db);
   res.status(201).json({ enviados, falhas, total: enviados.length });
 });
@@ -163,7 +165,9 @@ router.delete('/:id', authMiddleware, requirePermission('media.upload'), async (
   if (idx === -1) return res.status(404).json({ error: 'Arquivo nao encontrado' });
   try { await driveService.deleteFile(db.media[idx].driveFileId); }
   catch (e) { console.error('Erro ao remover do Drive:', e.message); }
+  const nomeRemovido = db.media[idx].name;
   db.media.splice(idx, 1);
+  appendLog(db, req.user, 'midia_removida', nomeRemovido);
   writeDB(db);
   res.json({ message: 'Arquivo removido' });
 });

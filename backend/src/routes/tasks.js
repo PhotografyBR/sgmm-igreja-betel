@@ -4,6 +4,7 @@ const multer = require('multer');
 const { readDB, writeDB } = require('../config/database');
 const { authMiddleware, requireRole, requirePermission } = require('../middleware/auth');
 const driveService = require('../services/drive');
+const { appendLog } = require('../services/activityLog');
 
 const router = express.Router();
 
@@ -108,6 +109,7 @@ router.post('/', authMiddleware, requirePermission('tasks.manage'), (req, res) =
     createdAt: new Date().toISOString()
   });
 
+  appendLog(db, req.user, 'tarefa_criada', newTask.title);
   writeDB(db);
   res.status(201).json(newTask);
 });
@@ -188,7 +190,9 @@ router.delete('/:id', authMiddleware, requireRole('admin'), (req, res) => {
   const idx = db.tasks.findIndex(t => t.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Tarefa não encontrada' });
 
+  const tarefaRemovida = db.tasks[idx].title;
   db.tasks.splice(idx, 1);
+  appendLog(db, req.user, 'tarefa_excluida', tarefaRemovida);
   writeDB(db);
   res.json({ message: 'Tarefa removida' });
 });
